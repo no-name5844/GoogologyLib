@@ -1,0 +1,6 @@
+build/
+boost/
+boost-1.91.0-1-cmake.7z
+.vscode/
+*.o
+*.obj
