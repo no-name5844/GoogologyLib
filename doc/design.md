@@ -41,9 +41,9 @@ kept symbolic, not evaluated.
 - 能力位 `Evaluate`（返回数值）与 `ToOrdinal`（映到序数对象）**已从契约中移除**。
   The capabilities `Evaluate` (returns a value) and `ToOrdinal` (maps to an ordinal object) are
   **removed from the contract**.
-- `expand(n)` / `reduce()` 返回的是**记号自身的符号形式**（字符串或归一化记号项），不是数字。
-  `expand(n)` / `reduce()` return the notation's **own symbolic form** (a string or a normalized
-  notation term), not a number.
+- `expand(n)` / `reduce()` 返回的是**记号自身对象**（可继续 `expand` / `to_string`），不是字符串、也不是数字。
+  `expand(n)` / `reduce()` return the notation's **own object** (which can be expanded further or
+  serialized), never a string and never a number.
 - 普通算术表达式仅作为展开的终点符号，库不会进一步算出 `27` 之类的终值。
   An ordinary-arithmetic expression is only the symbolic endpoint of expansion; the library does
   not further compute a final value such as `27`.
@@ -93,9 +93,9 @@ a partial notation is still a valid `Notation` and the interface is complete.
 - **ExpandTo(len)** — 展开到目标规模 / 长度（数组记号用）/ expand to a target size / length.
 - **Successor** — 主要用于序数 / mainly ordinal.
 
-所有运算均**不产生数值**：`expand` / `reduce` 的输出是记号自身的符号形式。
-None of these operations produce a numeric value: the output of `expand` / `reduce` is the
-notation's own symbolic form.
+所有运算均**不产生数值**：`expand` / `reduce` 返回记号自身（仍是未求值的符号对象），需要 LaTeX 时再调用 `to_string()`。
+None of these operations produce a numeric value: `expand` / `reduce` return the notation object
+itself (still unevaluated); call `to_string()` when LaTeX is needed.
 
 ## 6. 跨族比较不可定义 / Cross-family comparison undefined
 
@@ -113,9 +113,10 @@ cross-family bridge is provided (the former `ToOrdinal` is removed).
 Both deliberately do **not** support `Compare` (large-number comparison undefined). All other
 notations above are future slots.
 
-> 代码对齐说明 / Code-alignment note: 当前 C++ 代码仍含 `evaluate()`，将于下一步移除并改为符号化
-> `expand` / `reduce`。This C++ code still contains `evaluate()`; the next step removes it and
-> switches to symbolic `expand` / `reduce`.
+> 代码对齐说明 / Code-alignment note: 已移除 `evaluate()`，`expand` / `reduce` 返回记号自身的对象（非字符串、非数值），
+> 字符串转换仅由 `to_string()` / `string_to_it()` 负责。`evaluate()` has been removed; `expand` /
+> `reduce` return the notation object itself (neither a string nor a value), and string conversion
+> is handled solely by `to_string()` / `string_to_it()`.
 
 ## 8. 整数类型 / Integer type
 

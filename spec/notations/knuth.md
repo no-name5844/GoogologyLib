@@ -10,13 +10,15 @@
 ## Output format (LaTeX) / 输出格式（LaTeX）
 
 `to_string()` / `print()` / `operator<<` emit **LaTeX**, e.g. `2 \uparrow\uparrow 3`.
-The library never computes a numeric value; `expand(n)` / `reduce()` return the
-symbolic rewrite, also in LaTeX (rewrite steps joined with `\to`).
+The library never computes a numeric value. `expand(n)` / `expand_to(len)` /
+`reduce()` **rewrite the internal AST and return the notation object itself**
+(a `Knuth`), never a string; call `to_string()` to render LaTeX on demand.
 `string_to_it()` / `operator>>` accept **ASCII** (`2 ^^ 3`) or **Unicode** (`2 ↑↑ 3`)
 input — they do NOT parse LaTeX.
 
-`to_string()` 输出 **LaTeX**，例如 `2 \uparrow\uparrow 3`。库不计算数值；
-`expand(n)` / `reduce()` 返回符号化重写（亦为 LaTeX，重写步用 `\to` 连接）。
+`to_string()` / `print()` / `operator<<` 输出 **LaTeX**，例如 `2 \uparrow\uparrow 3`。
+库不计算数值；`expand(n)` / `expand_to(len)` / `reduce()` **重写内部 AST 并返回记号自身
+对象**（一个 `Knuth`），而不是字符串；需要 LaTeX 时再调用 `to_string()`。
 `string_to_it()` / `operator>>` 接受 **ASCII**（`2 ^^ 3`）或 **Unicode**（`2 ↑↑ 3`）
 输入，不解析 LaTeX。
 

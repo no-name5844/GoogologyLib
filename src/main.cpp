@@ -61,27 +61,29 @@ int main() {
     printCapabilityMatrix();
     std::cout << "\n";
 
-    // Knuth demos (output is LaTeX; the library never computes a value)
+    // Knuth demos (output is LaTeX; the library never computes a value).
+    // expand()/reduce() return a Knuth object; to_string() renders the LaTeX.
     Knuth k1("2 ^ 3");
     std::cout << "knuth 2^3    = " << k1.to_string() << "\n";
     Knuth k2("2 ^^ 3");
     std::cout << "knuth 2^^3   = " << k2.to_string() << "\n";
-    std::cout << "knuth 2^^3 expand(1) = " << k2.expand(1) << "\n";
-    std::cout << "knuth 2^^3 expand(2) = " << k2.expand(2) << "\n";
-    std::cout << "knuth 2^^3 reduce()   = " << k2.reduce() << "\n";
+    std::cout << "knuth 2^^3 expand(1) = " << k2.expand(1).to_string() << "\n";
+    std::cout << "knuth 2^^3 expand(2) = " << k2.expand(2).to_string() << "\n";
+    std::cout << "knuth 2^^3 reduce()   = " << k2.reduce().to_string() << "\n";
 
-    // Conway demos
+    // Conway demos (expand()/reduce() return a Conway object)
     Conway c1("3 -> 2");
     std::cout << "conway 3->2        = " << c1.to_string() << "\n";
     Conway c2("3 -> 3 -> 2");
     std::cout << "conway 3->3->2      = " << c2.to_string() << "\n";
-    std::cout << "conway 3->3->2 exp1 = " << c2.expand(1) << "\n";
-    std::cout << "conway 3->3->2 exp2 = " << c2.expand(2) << "\n";
-    std::cout << "conway 3->3->2 red  = " << c2.reduce() << "\n";
+    std::cout << "conway 3->3->2 exp1 = " << c2.expand(1).to_string() << "\n";
+    std::cout << "conway 3->3->2 exp2 = " << c2.expand(2).to_string() << "\n";
+    std::cout << "conway 3->3->2 red  = " << c2.reduce().to_string() << "\n";
 
-    // print() / operator<< both emit LaTeX
-    std::cout << "operator<< : "; std::cout << k2 << "\n";
-    std::cout << "print()    : "; k2.print(); std::cout << "\n";
+    // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
+    Knuth k3("2 ^^ 3");
+    std::cout << "operator<< : "; std::cout << k3 << "\n";
+    std::cout << "print()    : "; k3.print(); std::cout << "\n";
 
     // Comparison is undefined for large-number notations.
     try {

@@ -34,9 +34,10 @@ struct NotComparable : std::runtime_error {
 // comparison on large-number notations).
 //
 // The library NEVER computes a numeric value. "How to compute" is provided by
-// expand() / expand_to() which return the notation's own symbolic (LaTeX) form.
-// String output (to_string / print / operator<<) is LaTeX; string input
-// (string_to_it / operator>>) accepts ASCII or Unicode forms.
+// expand() / expand_to() / reduce(), which rewrite the notation and return the
+// notation's OWN object (so it can be serialized again or expanded further).
+// Only the string functions to_string() / string_to_it() deal with strings:
+// to_string() emits LaTeX, string_to_it() accepts ASCII or Unicode forms.
 class Notation {
 public:
     virtual ~Notation() = default;
@@ -51,13 +52,17 @@ public:
     virtual Capabilities capabilities() const = 0;
     bool can(Op op) const { return capabilities().has(op); }
 
-    // --- operations (defaults: unsupported) ---
+    // --- string conversion (the ONLY string-touching operations) ---
     virtual void string_to_it(const std::string&) { throw UnsupportedOperation(name(), Op::FromString); }
     virtual std::string to_string() const { throw UnsupportedOperation(name(), Op::ToString); }
+
+    // --- operations: these return the notation's OWN type (so it can be
+    //     further expanded / serialized), NEVER a string. Only to_string()
+    //     produces a string. ---
     virtual void normalize() { throw UnsupportedOperation(name(), Op::Normalize); }
     virtual int compare(const Notation&) const { throw NotComparable(name()); }
-    virtual std::string expand(BigInt /*n*/) const { throw UnsupportedOperation(name(), Op::Expand); }
-    virtual std::string expand_to(BigInt /*len*/) const { throw UnsupportedOperation(name(), Op::ExpandTo); }
+    virtual Notation& expand(BigInt /*n*/) { throw UnsupportedOperation(name(), Op::Expand); }
+    virtual Notation& expand_to(BigInt /*len*/) { throw UnsupportedOperation(name(), Op::ExpandTo); }
     virtual bool isSuccessor() const { throw UnsupportedOperation(name(), Op::Successor); }
 
     // Large-number notations return false: comparison is generally undefined.
@@ -66,16 +71,17 @@ public:
     // Print the LaTeX form to a stream (defaults to std::cout). Returns the stream.
     std::ostream& print(std::ostream& os = std::cout) const { return os << to_string(); }
 
-    // Fully reduce (symbolically) by applying expand() until the form is stable.
-    // Never produces a numeric value.
-    std::string reduce() const {
+    // Fully reduce (symbolically) by applying expand(1) until the form is
+    // stable. Returns *this (the rewritten notation object), never a string.
+    Notation& reduce() {
         std::string prev = to_string();
         for (BigInt k = 1; k <= 1000; ++k) {
-            std::string cur = expand(k);
-            if (cur == prev) return cur;
+            expand(1);
+            std::string cur = to_string();
+            if (cur == prev) return *this;
             prev = cur;
         }
-        return prev;
+        return *this;
     }
 
     // Stream output (LaTeX via to_string()).

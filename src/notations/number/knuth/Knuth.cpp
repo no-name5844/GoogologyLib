@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iostream>
+#include <memory>
 
 namespace googology {
 namespace number {
@@ -15,23 +16,54 @@ Capabilities Knuth::capabilities() const {
     return c;
 }
 
-// LaTeX of a ^c b, after `depth` single-step rewrites. No numeric evaluation:
-// the result is always the notation's own symbolic form.
-std::string Knuth::fmt(BigInt a, BigInt c, BigInt b, BigInt depth) {
-    auto arrow = [](BigInt cc) -> std::string {
-        if (cc == 1) return "\\uparrow";
-        return "\\uparrow^{" + std::to_string(cc) + "}";
-    };
-    auto lit = [&](BigInt aa, BigInt cc, BigInt bb) -> std::string {
-        return std::to_string(aa) + " " + arrow(cc) + " " + std::to_string(bb);
-    };
-    if (depth <= 0) return lit(a, c, b);
-    if (b == 1) return std::to_string(a);          // a ^c 1 = a
-    if (c == 1) return lit(a, 1, b);               // a^b, no further expansion
-    std::string inner = fmt(a, c, b - 1, depth - 1);
-    std::string outer = std::to_string(a) + " " + arrow(c - 1) + " ";
-    if (inner.find('\\') != std::string::npos) return outer + "(" + inner + ")";
-    return outer + inner;
+// Deep clone (unique_ptr makes KNode non-copyable).
+KNode Knuth::cloneNode(const KNode& n) {
+    KNode c;
+    c.isVal = n.isVal;
+    c.val = n.val;
+    c.baseVal = n.baseVal;
+    c.height = n.height;
+    if (n.exp) c.exp = std::make_unique<KNode>(cloneNode(*n.exp));
+    return c;
+}
+
+// LaTeX (no numeric evaluation) of a Knuth AST node.
+std::string Knuth::tex(const KNode& n) {
+    if (n.isVal) return std::to_string(n.val);
+    std::string bt = std::to_string(n.baseVal);
+    std::string et = n.exp ? tex(*n.exp) : "";
+    std::string arr = (n.height == 1)
+        ? "\\uparrow"
+        : "\\uparrow^{" + std::to_string(n.height) + "}";
+    // parenthesize the exponent only when it is itself an arrow term
+    bool expHasArrow = n.exp && !n.exp->isVal;
+    std::string expPart = expHasArrow ? "(" + et + ")" : et;
+    return bt + " " + arr + " " + expPart;
+}
+
+// One single rewrite step on the AST. No numeric evaluation: the result is
+// always another Knuth AST node (a rewritten form of the same notation).
+//   - a ^c 1            = a                (collapse to base)
+//   - a ^1 b (= a^b)    : terminal, unchanged
+//   - a ^c b (c>1,b>1)  = a ^(c-1) (a ^c (b-1))
+// When the exponent is itself an arrow, the step recurses into that exponent.
+KNode Knuth::step(const KNode& node) {
+    if (node.isVal) return cloneNode(node);            // constant: terminal
+    if (node.exp && node.exp->isVal) {
+        BigInt B = node.exp->val;
+        if (B == 1) return KNode::value(node.baseVal);  // a ^c 1 = a
+        if (node.height == 1) return cloneNode(node);   // a^b: terminal
+        KNode inner = KNode::arrow(node.baseVal, node.height, KNode::value(B - 1));
+        KNode outer = KNode::arrow(node.baseVal, node.height - 1, std::move(inner));
+        return outer;
+    }
+    // recurse into the rightmost sub-term
+    KNode r;
+    r.isVal = false;
+    r.baseVal = node.baseVal;
+    r.height = node.height;
+    r.exp = std::make_unique<KNode>(step(*node.exp));
+    return r;
 }
 
 void Knuth::string_to_it(const std::string& s) {
@@ -54,14 +86,28 @@ void Knuth::string_to_it(const std::string& s) {
     if (c == 0) c = 1;
     BigInt b = std::stoll(t.substr(i));
 
-    a_ = a;
-    c_ = c;
-    b_ = b;
+    // store as the AST node  a ↑^c b
+    root_ = KNode::arrow(a, c, KNode::value(b));
 }
 
-std::string Knuth::to_string() const { return fmt(a_, c_, b_, 0); }
-std::string Knuth::expand(BigInt n) const { return fmt(a_, c_, b_, n); }
-std::string Knuth::expand_to(BigInt len) const { return expand(len); }
+std::string Knuth::to_string() const { return tex(root_); }
+
+// Rewrite n single steps, mutating this; return *this (a Knuth object).
+Knuth& Knuth::expand(BigInt n) {
+    for (BigInt i = 0; i < n; ++i) root_ = step(root_);
+    return *this;
+}
+
+// Expand until the LaTeX length reaches `len` or the form is stable.
+Knuth& Knuth::expand_to(BigInt len) {
+    std::string prev = to_string();
+    while (true) {
+        expand(1);
+        std::string cur = to_string();
+        if (cur.size() >= static_cast<size_t>(len) || cur == prev) return *this;
+        prev = cur;
+    }
+}
 
 std::istream& operator>>(std::istream& is, Knuth& k) {
     std::string s;

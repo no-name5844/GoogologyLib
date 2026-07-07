@@ -24,15 +24,19 @@ struct CNode {
 //   3. X -> a -> b             = X -> (X -> a-1 -> b) -> b-1
 //
 // Output is LaTeX (e.g. `3 \rightarrow 3 \rightarrow 2`). The library never
-// computes a numeric value; expand() / reduce() return the symbolic rewrite.
+// computes a numeric value: expand() / expand_to() rewrite the internal chain
+// and return *this (a Conway object); to_string() turns it into LaTeX on demand.
 class Conway : public Notation {
     std::vector<CNode> chain_;
 
     static std::string ser(const std::vector<CNode>& ch);
     // One single rewrite step (rules 2/3) at the outermost applicable position;
     // if the top level has no rule but a nested sub-chain does, the step is
-    // applied one level inside that sub-chain. Linear in chain size.
+    // applied inside that sub-chain. Linear in chain size; never computes a value.
     static std::vector<CNode> stepOnce(const std::vector<CNode>& ch);
+    // Apply stepOnce to each immediate sub-chain; return ch unchanged if none
+    // of them can step (used to drive full reduction of nested chains).
+    static std::vector<CNode> recurseSub(const std::vector<CNode>& ch);
 
 public:
     Conway() = default;
@@ -47,8 +51,10 @@ public:
 
     void string_to_it(const std::string& s) override;
     std::string to_string() const override;
-    std::string expand(BigInt n) const override;
-    std::string expand_to(BigInt len) const override;
+
+    // These return the notation's OWN type (a rewritten Conway), not a string.
+    Conway& expand(BigInt n) override;
+    Conway& expand_to(BigInt len) override;
 
     friend std::istream& operator>>(std::istream& is, Conway& c);
 };

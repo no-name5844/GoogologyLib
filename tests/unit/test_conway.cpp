@@ -10,13 +10,14 @@ int main() {
     assert(Conway("3 -> 2").to_string() == "3^{2}");
     assert(Conway("3 -> 3 -> 2").to_string() == "3 \\rightarrow 3 \\rightarrow 2");
 
-    // expand() returns the symbolic rewrite (LaTeX), not a value
-    assert(Conway("3 -> 3 -> 2").expand(1) ==
+    // expand() returns a Conway object; to_string() gives its LaTeX form
+    assert(Conway("3 -> 3 -> 2").expand(1).to_string() ==
            "3 \\rightarrow (3 \\rightarrow 2 \\rightarrow 2) \\rightarrow 1");
-    assert(Conway("3 -> 3 -> 2").expand(2) ==
+    assert(Conway("3 -> 3 -> 2").expand(2).to_string() ==
            "3 \\rightarrow (3 \\rightarrow 2 \\rightarrow 2)");
-    // reduce() actually rewrites (never to a bare number)
-    assert(Conway("3 -> 3 -> 2").reduce() != Conway("3 -> 3 -> 2").to_string());
+    // reduce() actually rewrites the object (never to a bare number)
+    assert(Conway("3 -> 3 -> 2").reduce().to_string() !=
+           Conway("3 -> 3 -> 2").to_string());
 
     // comparison is undefined -> must throw NotComparable
     bool threw = false;

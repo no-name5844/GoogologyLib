@@ -10,13 +10,15 @@
 ## Output format (LaTeX) / 输出格式（LaTeX）
 
 `to_string()` / `print()` / `operator<<` emit **LaTeX**, e.g. `3 \rightarrow 3 \rightarrow 2`.
-The library never computes a numeric value; `expand(n)` / `reduce()` return the
-symbolic rewrite, also in LaTeX (rewrite steps joined with `\to`).
+The library never computes a numeric value. `expand(n)` / `expand_to(len)` /
+`reduce()` **rewrite the internal chain and return the notation object itself**
+(a `Conway`), never a string; call `to_string()` to render LaTeX on demand.
 `string_to_it()` / `operator>>` accept **ASCII** (`3 -> 3 -> 2`) or **Unicode**
 (`3 → 3 → 2`) input — they do NOT parse LaTeX.
 
-`to_string()` 输出 **LaTeX**，例如 `3 \rightarrow 3 \rightarrow 2`。库不计算数值；
-`expand(n)` / `reduce()` 返回符号化重写（亦为 LaTeX，重写步用 `\to` 连接）。
+`to_string()` / `print()` / `operator<<` 输出 **LaTeX**，例如 `3 \rightarrow 3 \rightarrow 2`。
+库不计算数值；`expand(n)` / `expand_to(len)` / `reduce()` **重写内部链并返回记号自身对象**
+（一个 `Conway`），而不是字符串；需要 LaTeX 时再调用 `to_string()`。
 `string_to_it()` / `operator>>` 接受 **ASCII**（`3 -> 3 -> 2`）或 **Unicode**
 （`3 → 3 → 2`）输入，不解析 LaTeX。
 
@@ -55,8 +57,8 @@ repeats it until the simplest symbolic form.
  → 3 -> 3^3                     (3 -> 3 base = 3^3)
 ```
 
-（最终符号形式为 `3 -> 3^3`；不计算 `3^27` 的终值。）
-(The final symbolic form is `3 -> 3^3`; the value `3^27` is NOT computed.)
+（最终符号形式为 `3 \rightarrow (3^{3})`（即 `3^(3^3)`）；不计算其终值。）
+(The final symbolic form is `3 \rightarrow (3^{3})` = `3^(3^3)`; its value is NOT computed.)
 
 ## Comparison / 比较
 

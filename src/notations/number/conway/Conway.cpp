@@ -32,11 +32,17 @@ std::string Conway::ser(const std::vector<CNode>& ch) {
 
 // One single rewrite step (rules 2/3) applied at the outermost applicable
 // position. If the top level has no rule but a nested sub-chain does, the
-// step is applied one level inside that sub-chain. Linear in chain size;
-// never expands exponentially and never computes a numeric value.
+// step is applied inside that sub-chain. Linear in chain size; never expands
+// exponentially and never computes a numeric value.
 std::vector<CNode> Conway::stepOnce(const std::vector<CNode>& ch) {
     size_t n = ch.size();
-    if (n <= 2) return ch;  // terminal: [a] or [a -> b]
+    if (n <= 2) {
+        if (n == 0 || n == 1) return ch;
+        // genuine base case a -> b (both integers): terminal
+        if (ch[0].isInt && ch[1].isInt) return ch;
+        // a length-2 chain whose operand is a sub-chain: step that sub-chain
+        return recurseSub(ch);
+    }
     // rule 2a: trailing 1  (X -> a -> 1  =  X -> a)
     if (ch.back().isInt && ch.back().val == 1) {
         auto r = ch;
@@ -61,11 +67,28 @@ std::vector<CNode> Conway::stepOnce(const std::vector<CNode>& ch) {
         next.push_back(CNode::value(b - 1));
         return next;
     }
-    // otherwise recurse one step into each nested sub-chain
+    // no top-level rule: step any nested sub-chain
+    return recurseSub(ch);
+}
+
+// Apply stepOnce to each immediate sub-chain; return ch unchanged if none can
+// step (this is what makes reduce() drive nested chains to a stable form).
+std::vector<CNode> Conway::recurseSub(const std::vector<CNode>& ch) {
     std::vector<CNode> r = ch;
-    for (auto& node : r)
-        if (!node.isInt) node.sub = stepOnce(node.sub);
-    return r;
+    bool changed = false;
+    for (auto& node : r) {
+        if (!node.isInt) {
+            std::string before = ser(node.sub);
+            std::vector<CNode> s = stepOnce(node.sub);
+            if (ser(s) != before) {
+                // a sub-chain that shrinks to a single number collapses to a plain int
+                if (s.size() == 1 && s[0].isInt) node = CNode::value(s[0].val);
+                else node.sub = std::move(s);
+                changed = true;
+            }
+        }
+    }
+    return changed ? r : ch;
 }
 
 void Conway::string_to_it(const std::string& s) {
@@ -90,12 +113,23 @@ void Conway::string_to_it(const std::string& s) {
 }
 
 std::string Conway::to_string() const { return ser(chain_); }
-std::string Conway::expand(BigInt n) const {
-    std::vector<CNode> ch = chain_;
-    for (BigInt i = 0; i < n; ++i) ch = stepOnce(ch);
-    return ser(ch);
+
+// Rewrite n single steps, mutating this; return *this (a Conway object).
+Conway& Conway::expand(BigInt n) {
+    for (BigInt i = 0; i < n; ++i) chain_ = stepOnce(chain_);
+    return *this;
 }
-std::string Conway::expand_to(BigInt len) const { return expand(len); }
+
+// Expand until the LaTeX length reaches `len` or the form is stable.
+Conway& Conway::expand_to(BigInt len) {
+    std::string prev = to_string();
+    while (true) {
+        expand(1);
+        std::string cur = to_string();
+        if (cur.size() >= static_cast<size_t>(len) || cur == prev) return *this;
+        prev = cur;
+    }
+}
 
 std::istream& operator>>(std::istream& is, Conway& c) {
     std::string s;
