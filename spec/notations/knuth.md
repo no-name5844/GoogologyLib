@@ -1,12 +1,13 @@
 # Knuth up-arrow notation (高德纳箭头)
 
-- **Family**: number (large-number notation)
-- **Subfamily**: —
-- **Style**: —
-- **Compare**: UNDEFINED (throws `NotComparable`)
-- **Supported ops**: Parse, Serialize, Expand, Evaluate
+- **Family / 族**: number (large-number notation / 大数记号)
+- **Subfamily / 子族**: —
+- **Style / 风格**: —
+- **Compare / 比较**: UNDEFINED (throws `NotComparable` / 抛 `NotComparable`)
+- **Supported ops / 支持运算**: Parse, Serialize, Expand, ExpandTo
+- **Evaluate / 求值**: **not provided / 不提供**（一律不求值 / never evaluated）
 
-## Definition
+## Definition / 定义
 
 \[
 a \uparrow^c b =
@@ -17,38 +18,45 @@ a \uparrow^{c-1} (a \uparrow^c (b-1)) & c > 1,\; b > 1
 \end{cases}
 \]
 
+其中 \(a \uparrow b = a^b\)。
 where \(a \uparrow b = a^b\).
 
-### Notes
-- \(c=1\): ordinary exponentiation \(a^b\).
-- \(c=2\): tetration \(a \uparrow\uparrow b\).
-- \(c=3\): pentation, etc.
-- The case \(b=1\) returns \(a\) for every height \(c\ge 1\).
+### Notes / 注记
+- \(c=1\): 普通乘方 \(a^b\) / ordinary exponentiation.
+- \(c=2\): 迭代幂次（tetration）\(a \uparrow\uparrow b\).
+- \(c=3\): pentation，依此类推。
+- \(b=1\) 时对任意高度 \(c\ge 1\) 返回 \(a\)。
 
-## Representation in code
+## String syntax (parser) / 字符串语法
 
-`a ^c b` is stored as an AST node `Arrow(a, c, Value(b))`. Expansion rewrites
-one step: `a ^c b` → `a ^(c-1) (a ^c (b-1))` (for \(c>1, b>1\)).
+- Height = **连续 `^` 的个数 / number of consecutive `^` characters**:
+  - `^`  → c = 1（普通乘方 / ordinary exponentiation）
+  - `^^` → c = 2（tetration）
+  - `^^^` → c = 3（pentation），依此类推。
+- Unicode 箭头 `↑` 也被接受并归一化为 `^` / the Unicode arrow `↑` is also accepted and normalized to `^`.
 
-## String syntax (parser)
+## Expansion (how to compute) / 展开（如何计算）
 
-- Height = **number of consecutive `^` characters**:
-  - `^`  → c = 1 (ordinary exponentiation)
-  - `^^` → c = 2 (tetration)
-  - `^^^` → c = 3 (pentation), etc.
-- The Unicode arrow `↑` is also accepted and normalized to `^`.
+本库**不计算数值**；`expand` 提供按定义的一步重写，`reduce` 反复应用直到符号最简。
+The library **does not compute values**; `expand` gives one rewrite per the definition, and `reduce`
+repeats it until the simplest symbolic form.
 
-Examples: `2 ^ 3` (8), `2 ^^ 3` (16), `3 ^^ 2` (27).
+单步规则 / One-step rule: for \(c>1, b>1\),
+`a ↑^c b` → `a ↑^(c-1) (a ↑^c (b-1))`.
 
-## Example (evaluate)
+轨迹示例 / Trace example:
 
-| expression | value |
-|---|---|
-| `2 ^ 3` | 8 |
-| `2 ^^ 3` | 16 |
-| `3 ^^ 2` | 27 |
+```
+2 ↑↑ 3
+ → 2 ↑ (2 ↑↑ 2)
+ → 2 ↑ (2 ↑ (2 ↑↑ 1))
+ → 2 ↑ (2 ↑ 2)
+```
 
-## Comparison
+（到此停止；不计算 `2 ↑ (2 ↑ 2)` 的终值 `16`。）
+(Stop here; the final value `16` of `2 ↑ (2 ↑ 2)` is NOT computed.)
 
-Not provided. Large-number comparison is generally undefined; calling
-`compare()` throws `NotComparable`.
+## Comparison / 比较
+
+不提供。大数记号比较通常未定义；调用 `compare()` 抛 `NotComparable`。
+Not provided. Large-number comparison is generally undefined; calling `compare()` throws `NotComparable`.
