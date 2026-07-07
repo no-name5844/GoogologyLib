@@ -1,6 +1,8 @@
 build/
+build-cmake/
 boost/
 boost-1.91.0-1-cmake.7z
 .vscode/
+.workbuddy/
 *.o
 *.obj
