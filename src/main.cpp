@@ -4,9 +4,11 @@
 #include "googology/core/Registry.hpp"
 #include "googology/notations/number/knuth/Knuth.hpp"
 #include "googology/notations/number/conway/Conway.hpp"
+#include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 
 using namespace googology;
 using namespace googology::number;
+using namespace googology::ordinal;
 
 static const char* familyName(Family f) {
     switch (f) {
@@ -57,6 +59,7 @@ int main() {
     // Register built-ins.
     registry().add("knuth", [] { return std::make_unique<Knuth>(); });
     registry().add("conway", [] { return std::make_unique<Conway>(); });
+    registry().add("prss", [] { return std::make_unique<Prss>(); });
 
     printCapabilityMatrix();
     std::cout << "\n";
@@ -79,6 +82,26 @@ int main() {
     std::cout << "conway 3->3->2 exp1 = " << c2.expand(1).to_string() << "\n";
     std::cout << "conway 3->3->2 exp2 = " << c2.expand(2).to_string() << "\n";
     std::cout << "conway 3->3->2 red  = " << c2.reduce().to_string() << "\n";
+
+    // PrSS demos (ordinal / 阶差型). expand()/expand_to() return a Prss object;
+    // to_string() emits LaTeX. Compare is lexicographic (defined for ordinals).
+    Prss p1("(0, 1, 2)");
+    std::cout << "prss (0,1,2)            = " << p1.to_string() << "\n";
+    Prss p2("(0, 1, 2)");
+    std::cout << "prss (0,1,2) expand(1)  = " << p2.expand(1).to_string() << "\n";
+    Prss p3("(0, 1, 2)");
+    std::cout << "prss (0,1,2) expand(2)  = " << p3.expand(2).to_string() << "\n";
+    Prss p4("(0, 1, 2, 2, 2)");
+    std::cout << "prss (0,1,2,2,2) exp(1) = " << p4.expand(1).to_string() << "\n";
+
+    Prss pa("(0, 1, 2)"), pb("(0, 1, 3)");
+    std::cout << "compare((0,1,2),(0,1,3)) = " << pa.compare(pb) << "\n";
+    Prss pc("(0, 1, 2)"), pd("(0, 1, 2, 0)");
+    std::cout << "compare((0,1,2),(0,1,2,0)) = " << pc.compare(pd) << "\n";
+
+    Prss pn("(0, 1, 2, 1)");
+    pn.normalize();
+    std::cout << "prss (0,1,2,1) normalize  = " << pn.to_string() << "\n";
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");
