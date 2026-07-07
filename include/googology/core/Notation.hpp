@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <stdexcept>
+#include <iostream>
 #include "googology/config.hpp"
 #include "googology/core/Capability.hpp"
 
@@ -31,6 +32,11 @@ struct NotComparable : std::runtime_error {
 // from this and declares which operations it supports via capabilities().
 // Operations not supported throw UnsupportedOperation (or NotComparable for
 // comparison on large-number notations).
+//
+// The library NEVER computes a numeric value. "How to compute" is provided by
+// expand() / expand_to() which return the notation's own symbolic (LaTeX) form.
+// String output (to_string / print / operator<<) is LaTeX; string input
+// (string_to_it / operator>>) accepts ASCII or Unicode forms.
 class Notation {
 public:
     virtual ~Notation() = default;
@@ -46,17 +52,36 @@ public:
     bool can(Op op) const { return capabilities().has(op); }
 
     // --- operations (defaults: unsupported) ---
-    virtual void parse(const std::string&) { throw UnsupportedOperation(name(), Op::Parse); }
-    virtual std::string serialize() const { throw UnsupportedOperation(name(), Op::Serialize); }
+    virtual void string_to_it(const std::string&) { throw UnsupportedOperation(name(), Op::FromString); }
+    virtual std::string to_string() const { throw UnsupportedOperation(name(), Op::ToString); }
     virtual void normalize() { throw UnsupportedOperation(name(), Op::Normalize); }
     virtual int compare(const Notation&) const { throw NotComparable(name()); }
-    virtual void expand(BigInt /*n*/) { throw UnsupportedOperation(name(), Op::Expand); }
-    virtual void expand_to(BigInt /*len*/) { throw UnsupportedOperation(name(), Op::ExpandTo); }
-    virtual BigInt evaluate() const { throw UnsupportedOperation(name(), Op::Evaluate); }
+    virtual std::string expand(BigInt /*n*/) const { throw UnsupportedOperation(name(), Op::Expand); }
+    virtual std::string expand_to(BigInt /*len*/) const { throw UnsupportedOperation(name(), Op::ExpandTo); }
     virtual bool isSuccessor() const { throw UnsupportedOperation(name(), Op::Successor); }
 
     // Large-number notations return false: comparison is generally undefined.
     virtual bool comparable() const { return can(Op::Compare); }
+
+    // Print the LaTeX form to a stream (defaults to std::cout). Returns the stream.
+    std::ostream& print(std::ostream& os = std::cout) const { return os << to_string(); }
+
+    // Fully reduce (symbolically) by applying expand() until the form is stable.
+    // Never produces a numeric value.
+    std::string reduce() const {
+        std::string prev = to_string();
+        for (BigInt k = 1; k <= 1000; ++k) {
+            std::string cur = expand(k);
+            if (cur == prev) return cur;
+            prev = cur;
+        }
+        return prev;
+    }
+
+    // Stream output (LaTeX via to_string()).
+    friend std::ostream& operator<<(std::ostream& os, const Notation& n) {
+        return os << n.to_string();
+    }
 };
 
 } // namespace googology

@@ -1,44 +1,40 @@
 #include "googology/notations/number/knuth/Knuth.hpp"
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 namespace googology {
 namespace number {
 
 Capabilities Knuth::capabilities() const {
     Capabilities c;
-    c.set(Op::Parse);
-    c.set(Op::Serialize);
+    c.set(Op::FromString);
+    c.set(Op::ToString);
     c.set(Op::Expand);
-    c.set(Op::Evaluate);
+    c.set(Op::ExpandTo);
     return c;
 }
 
-BigInt Knuth::evalExpr(const KExpr& e) {
-    if (e.kind == KExpr::Kind::Value) return e.val;
-    BigInt r = evalExpr(*e.rhs);
-    if (e.c <= 1) return ipow(e.a, r);
-    if (r == 1) return e.a;
-    // a ^c b  =  a ^(c-1) (a ^c (b-1))
-    return evalExpr(KExpr::arrow(e.a, e.c - 1, KExpr::arrow(e.a, e.c, KExpr::value(r - 1))));
+// LaTeX of a ^c b, after `depth` single-step rewrites. No numeric evaluation:
+// the result is always the notation's own symbolic form.
+std::string Knuth::fmt(BigInt a, BigInt c, BigInt b, BigInt depth) {
+    auto arrow = [](BigInt cc) -> std::string {
+        if (cc == 1) return "\\uparrow";
+        return "\\uparrow^{" + std::to_string(cc) + "}";
+    };
+    auto lit = [&](BigInt aa, BigInt cc, BigInt bb) -> std::string {
+        return std::to_string(aa) + " " + arrow(cc) + " " + std::to_string(bb);
+    };
+    if (depth <= 0) return lit(a, c, b);
+    if (b == 1) return std::to_string(a);          // a ^c 1 = a
+    if (c == 1) return lit(a, 1, b);               // a^b, no further expansion
+    std::string inner = fmt(a, c, b - 1, depth - 1);
+    std::string outer = std::to_string(a) + " " + arrow(c - 1) + " ";
+    if (inner.find('\\') != std::string::npos) return outer + "(" + inner + ")";
+    return outer + inner;
 }
 
-KExpr Knuth::expandExpr(const KExpr& e) {
-    if (e.kind == KExpr::Kind::Value) return e;
-    BigInt r = evalExpr(*e.rhs);
-    if (e.c <= 1) return e;  // a^b is the base case, no further rule
-    if (r == 1) return KExpr::value(e.a);
-    return KExpr::arrow(e.a, e.c - 1, KExpr::arrow(e.a, e.c, KExpr::value(r - 1)));
-}
-
-std::string Knuth::ser(const KExpr& e) {
-    if (e.kind == KExpr::Kind::Value) return std::to_string(e.val);
-    std::string rhs = ser(*e.rhs);
-    if (e.c == 1) return std::to_string(e.a) + "^" + rhs;
-    return std::to_string(e.a) + "^" + std::to_string(e.c) + "(" + rhs + ")";
-}
-
-void Knuth::parse(const std::string& s) {
+void Knuth::string_to_it(const std::string& s) {
     std::string t = s;
     // accept the math symbol ↑ as well (UTF-8 string replace, no narrow-char literal)
     const std::string UP = "↑";
@@ -47,7 +43,7 @@ void Knuth::parse(const std::string& s) {
     t.erase(std::remove_if(t.begin(), t.end(), ::isspace), t.end());
 
     size_t pos = t.find('^');
-    if (pos == std::string::npos) throw std::invalid_argument("Knuth::parse: missing '^'");
+    if (pos == std::string::npos) throw std::invalid_argument("Knuth::string_to_it: missing '^'");
 
     BigInt a = std::stoll(t.substr(0, pos));
     size_t i = pos;
@@ -58,15 +54,20 @@ void Knuth::parse(const std::string& s) {
     if (c == 0) c = 1;
     BigInt b = std::stoll(t.substr(i));
 
-    root_ = std::make_shared<KExpr>(KExpr::arrow(a, c, KExpr::value(b)));
+    a_ = a;
+    c_ = c;
+    b_ = b;
 }
 
-std::string Knuth::serialize() const { return ser(*root_); }
-BigInt Knuth::evaluate() const { return evalExpr(*root_); }
+std::string Knuth::to_string() const { return fmt(a_, c_, b_, 0); }
+std::string Knuth::expand(BigInt n) const { return fmt(a_, c_, b_, n); }
+std::string Knuth::expand_to(BigInt len) const { return expand(len); }
 
-void Knuth::expand(BigInt n) {
-    for (BigInt i = 0; i < n; ++i)
-        root_ = std::make_shared<KExpr>(expandExpr(*root_));
+std::istream& operator>>(std::istream& is, Knuth& k) {
+    std::string s;
+    std::getline(is, s);
+    if (!s.empty()) k.string_to_it(s);
+    return is;
 }
 
 } // namespace number

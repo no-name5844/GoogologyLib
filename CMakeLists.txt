@@ -4,7 +4,9 @@ project(GoogologyLib CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Optional: real big-integer support (values beyond 2^63).
+# Optional: larger integer type for parse parameters / expansion indices
+# (e.g. arrow height beyond 2^63). NOTE: the library never computes numeric
+# values for a notation regardless of this setting (see doc/design.md).
 #   option(GOOGOLOGY_USE_BOOST "Use boost::multiprecision::cpp_int" OFF)
 #   if(GOOGOLOGY_USE_BOOST)
 #     find_package(Boost REQUIRED)

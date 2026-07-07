@@ -6,15 +6,17 @@
 using namespace googology::number;
 
 int main() {
-    // evaluate (recursion per spec)
-    assert(Conway("3 -> 2").evaluate() == 9);
-    assert(Conway("4 -> 3").evaluate() == 64);
-    assert(Conway("3 -> 3 -> 2").evaluate() == googology::ipow(3, 27));
+    // to_string() emits LaTeX (no numeric evaluation)
+    assert(Conway("3 -> 2").to_string() == "3^{2}");
+    assert(Conway("3 -> 3 -> 2").to_string() == "3 \\rightarrow 3 \\rightarrow 2");
 
-    // expand preserves the value
-    Conway e("3 -> 3 -> 2");
-    e.expand(1);
-    assert(e.evaluate() == googology::ipow(3, 27));
+    // expand() returns the symbolic rewrite (LaTeX), not a value
+    assert(Conway("3 -> 3 -> 2").expand(1) ==
+           "3 \\rightarrow (3 \\rightarrow 2 \\rightarrow 2) \\rightarrow 1");
+    assert(Conway("3 -> 3 -> 2").expand(2) ==
+           "3 \\rightarrow (3 \\rightarrow 2 \\rightarrow 2)");
+    // reduce() actually rewrites (never to a bare number)
+    assert(Conway("3 -> 3 -> 2").reduce() != Conway("3 -> 3 -> 2").to_string());
 
     // comparison is undefined -> must throw NotComparable
     bool threw = false;
@@ -25,7 +27,9 @@ int main() {
     }
     assert(threw);
 
-    assert(Conway().can(googology::Op::Evaluate));
+    assert(Conway().can(googology::Op::FromString));
+    assert(Conway().can(googology::Op::ToString));
+    assert(Conway().can(googology::Op::Expand));
     assert(!Conway().can(googology::Op::Compare));
 
     std::cout << "test_conway: PASS\n";

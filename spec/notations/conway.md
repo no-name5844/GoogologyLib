@@ -4,8 +4,21 @@
 - **Subfamily / 子族**: —
 - **Style / 风格**: —
 - **Compare / 比较**: UNDEFINED (throws `NotComparable` / 抛 `NotComparable`)
-- **Supported ops / 支持运算**: Parse, Serialize, Expand, ExpandTo
+- **Supported ops / 支持运算**: FromString, ToString, Expand, ExpandTo
 - **Evaluate / 求值**: **not provided / 不提供**（一律不求值 / never evaluated）
+
+## Output format (LaTeX) / 输出格式（LaTeX）
+
+`to_string()` / `print()` / `operator<<` emit **LaTeX**, e.g. `3 \rightarrow 3 \rightarrow 2`.
+The library never computes a numeric value; `expand(n)` / `reduce()` return the
+symbolic rewrite, also in LaTeX (rewrite steps joined with `\to`).
+`string_to_it()` / `operator>>` accept **ASCII** (`3 -> 3 -> 2`) or **Unicode**
+(`3 → 3 → 2`) input — they do NOT parse LaTeX.
+
+`to_string()` 输出 **LaTeX**，例如 `3 \rightarrow 3 \rightarrow 2`。库不计算数值；
+`expand(n)` / `reduce()` 返回符号化重写（亦为 LaTeX，重写步用 `\to` 连接）。
+`string_to_it()` / `operator>>` 接受 **ASCII**（`3 -> 3 -> 2`）或 **Unicode**
+（`3 → 3 → 2`）输入，不解析 LaTeX。
 
 ## Definition / 定义
 
@@ -27,8 +40,8 @@
 ## Expansion (how to compute) / 展开（如何计算）
 
 本库**不计算数值**；`expand` 提供按规则 3 的一步重写，`reduce` 反复应用直到符号最简。
-The library **does not compute values**; `expand` gives one rewrite per rule 3, and `reduce` repeats
-it until the simplest symbolic form.
+The library **does not compute values**; `expand` gives one rewrite per rule 3, and `reduce`
+repeats it until the simplest symbolic form.
 
 轨迹示例 / Trace example:
 

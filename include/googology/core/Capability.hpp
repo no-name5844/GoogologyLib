@@ -7,15 +7,18 @@ namespace googology {
 // notation declares which operations it implements. Operations not declared
 // are still part of the interface (so "other operations are included"), but
 // calling them throws UnsupportedOperation. See doc/design.md.
+//
+// NOTE: there is NO `Evaluate` capability. The library never computes a
+// numeric value for a notation; "how to compute" is provided by expand() /
+// expand_to() which return the notation's own symbolic (LaTeX) form.
 enum class Op : uint8_t {
-    Parse = 0,
-    Serialize = 1,
+    FromString = 0,
+    ToString = 1,
     Normalize = 2,
     Compare = 3,
     Expand = 4,
     ExpandTo = 5,
-    Evaluate = 6,
-    Successor = 7
+    Successor = 6
 };
 
 class Capabilities {

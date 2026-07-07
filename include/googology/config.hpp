@@ -6,11 +6,11 @@ namespace googology {
 
 // Integer type used throughout the library.
 //
-// For true big-number evaluation (values far beyond 2^63) enable Boost and
-// define GOOGOLOGY_USE_BOOST before including this header, or pass
-// -DGOOGOLOGY_USE_BOOST to the compiler. The default is int64_t so the
-// library compiles with NO external dependencies (sufficient for checking
-// small inputs and for auditing the recursion logic).
+// NOTE: the library never computes a numeric value for a notation (see
+// doc/design.md, "no numeric evaluation"). BigInt is used ONLY for parse
+// parameters and expansion indices (e.g. the arrow height c, chain length).
+// The default int64_t keeps the build dependency-free; it is sufficient
+// because we never materialize the (astronomically large) values themselves.
 #ifdef GOOGOLOGY_USE_BOOST
 #include <boost/multiprecision/cpp_int.hpp>
 using BigInt = boost::multiprecision::cpp_int;
@@ -18,7 +18,8 @@ using BigInt = boost::multiprecision::cpp_int;
 using BigInt = int64_t;
 #endif
 
-// Integer exponentiation, works for both int64_t and boost::multiprecision::cpp_int.
+// Integer exponentiation helper (kept generic; harmless here because the
+// library does not evaluate large-number notations to a value).
 inline BigInt ipow(BigInt base, BigInt exp) {
     if (exp < 0) throw std::invalid_argument("ipow: negative exponent");
     BigInt result = 1;

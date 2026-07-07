@@ -6,15 +6,14 @@
 using namespace googology::number;
 
 int main() {
-    // evaluate (direct recursion per spec)
-    assert(Knuth("2 ^ 3").evaluate() == 8);
-    assert(Knuth("2 ^^ 3").evaluate() == 16);
-    assert(Knuth("3 ^^ 2").evaluate() == 27);
+    // to_string() emits LaTeX (no numeric evaluation)
+    assert(Knuth("2 ^ 3").to_string() == "2 \\uparrow 3");
+    assert(Knuth("2 ^^ 3").to_string() == "2 \\uparrow^{2} 3");
+    assert(Knuth("3 ^^ 2").to_string() == "3 \\uparrow^{2} 2");
 
-    // expand preserves the value
-    Knuth e("2 ^^ 3");
-    e.expand(1);
-    assert(e.evaluate() == 16);
+    // expand() returns the symbolic rewrite (LaTeX), not a value
+    assert(Knuth("2 ^^ 3").expand(1) == "2 \\uparrow (2 \\uparrow^{2} 2)");
+    assert(Knuth("2 ^^ 3").reduce() == "2 \\uparrow (2 \\uparrow 2)");
 
     // comparison is undefined -> must throw NotComparable
     bool threw = false;
@@ -26,7 +25,9 @@ int main() {
     assert(threw);
 
     // capability report
-    assert(Knuth().can(googology::Op::Evaluate));
+    assert(Knuth().can(googology::Op::FromString));
+    assert(Knuth().can(googology::Op::ToString));
+    assert(Knuth().can(googology::Op::Expand));
     assert(!Knuth().can(googology::Op::Compare));
 
     std::cout << "test_knuth: PASS\n";
