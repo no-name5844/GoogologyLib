@@ -1,40 +1,42 @@
 #include "googology/notations/ordinal/sequence/difference/epspss/EpspSS.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.hpp"
-#include "googology/notations/number/knuth/Knuth.hpp"
 #include "googology/core/Notation.hpp"
 #include <cassert>
+#include <iostream>
+#include <stdexcept>
 
 using namespace googology;
 using namespace googology::ordinal;
-using namespace googology::number;
 
-// ε_pSS / ε_ωSS — difference-type ordinal sequence notations.
-// expand(m) = expand(A, m*L-1); expand_to(M) = expandLen(A, M).
-// Hand-computed references below (see spec/notations/epsilon_{p_ss,omega_ss}.md).
+// EpspSS / EpsOmegaSS — difference-type ordinal sequence notations.
+// Tests ONLY what the reference article defines (study/notations/
+// "epsilon_nSS & epsilon_omegaSS.md"): expand(m)=expand(A,m),
+// expand_to(M)=expandLen(A,M), and parse/serialize round-trip.
+// The article does NOT define compare / normalize, so those are left
+// to the base class (they throw) — see test_unsupported_ops().
 
 static void test_eps_p_ss() {
-    // p=2, A=(0,1,3): gap q=3 > p -> case 4 (+p)
+    // p=2, A=(0,1,3): br=2 (a_2=1), L=1, q=2 <= p -> case 3 (+q)
     {
         EpspSS a(2, "(0, 1, 3)");
         assert(a.to_string() == "(0, 1, 3)");
+        assert(a.p() == 2);
         EpspSS b(2, "(0, 1, 3)");
-        assert(b.expand(0).to_string() == "(0, 1, 2)");   // just decrement last
+        assert(b.expand(0).to_string() == "(0, 1, 2)");    // expandLen(A,0)
         EpspSS c(2, "(0, 1, 3)");
-        assert(c.expand(1).to_string() == "(0, 1, 2)");   // M = 1*1-1 = 0
+        assert(c.expand(1).to_string() == "(0, 1, 2)");    // M = 1*1-1 = 0
         EpspSS d(2, "(0, 1, 3)");
-        assert(d.expand(2).to_string() == "(0, 1, 2, 5)");  // M=1: +p=2 at tail
+        assert(d.expand(2).to_string() == "(0, 1, 2, 5)"); // +q=2 at tail
     }
-    // p=2, A=(0,4,4,4): tail L=3, q=4 > p -> case 4 (+p), wraps
-    {
-        EpspSS a(2, "(0, 4, 4, 4)");
-        assert(a.expand(0).to_string() == "(0, 4, 4, 3)");
-        EpspSS b(2, "(0, 4, 4, 4)");
-        assert(b.expand(1).to_string() == "(0, 4, 4, 3, 6, 6)");
-    }
-    // p=5, A=(0,1,3): br=2 (a_2=1), q = 3-1 = 2 <= p -> case 3 (+q=2)
+    // p=5, A=(0,1,3): q=2 <= p -> case 3 (+q=2), same result
     {
         EpspSS a(5, "(0, 1, 3)");
-        assert(a.expand(2).to_string() == "(0, 1, 2, 5)");  // +q=2 at tail
+        assert(a.expand(2).to_string() == "(0, 1, 2, 5)");
+    }
+    // p=2, A=(0,1,2): br=2, L=1, q=1 -> case 2 (no add)
+    {
+        EpspSS a(2, "(0, 1, 2)");
+        assert(a.expand(2).to_string() == "(0, 1, 1, 2)"); // (m+n-L)th A
     }
     // parse variants
     {
@@ -42,61 +44,52 @@ static void test_eps_p_ss() {
         assert(a.to_string() == "(0, 1, 3)");
         EpspSS b(2, "0,1,3");
         assert(b.to_string() == "(0, 1, 3)");
-        assert(b.p() == 2);
     }
-    // expand_to (length-parameterized)
+    // expand_to(M) = expandLen(A, M)
     {
         EpspSS a(2, "(0, 1, 3)");
-        assert(a.expand_to(2).to_string() == "(0, 1, 2, 5, 5)");
+        assert(a.expand_to(1).to_string() == "(0, 1, 2, 5)");
     }
 }
 
 static void test_eps_omega_ss() {
-    // A=(0,1,3): q=3 added in full (unbounded)
+    // A=(0,1,3): q=2 -> case 3 (+q, unbounded)
     {
         EpsOmegaSS a("(0, 1, 3)");
         assert(a.to_string() == "(0, 1, 3)");
         EpsOmegaSS b("(0, 1, 3)");
-        assert(b.expand(0).to_string() == "(0, 1, 2)");
-        EpsOmegaSS c("(0, 1, 3)");
-        assert(c.expand(1).to_string() == "(0, 1, 2)");   // M=0
+        assert(b.expand(2).to_string() == "(0, 1, 2, 5)");
+        EpsOmegaSS c("(0, 1, 2)");   // q=1 -> case 2
+        assert(c.expand(2).to_string() == "(0, 1, 1, 2)");
         EpsOmegaSS d("(0, 1, 3)");
-        assert(d.expand(2).to_string() == "(0, 1, 2, 5)");  // br=2,a_k=1,q=2 added
-    }
-    // A=(0,4,4,4): tail L=3, q=4 added in full, wraps
-    {
-        EpsOmegaSS a("(0, 4, 4, 4)");
-        assert(a.expand(0).to_string() == "(0, 4, 4, 3)");
-        EpsOmegaSS b("(0, 4, 4, 4)");
-        assert(b.expand(1).to_string() == "(0, 4, 4, 3, 8, 8)");
-    }
-    // expand_to
-    {
-        EpsOmegaSS a("(0, 1, 3)");
-        assert(a.expand_to(2).to_string() == "(0, 1, 2, 5, 5)");
+        assert(d.expand_to(1).to_string() == "(0, 1, 2, 5)");
     }
 }
 
-static void test_compare() {
-    // lexicographic within the same family
-    EpspSS a(2, "(0, 1, 3)"), b(2, "(0, 1, 2)");
-    assert(a.compare(b) == 1);
-    EpspSS c(2, "(0, 1, 2)"), d(2, "(0, 1, 2)");
-    assert(c.compare(d) == 0);
-    EpspSS e(2, "(0, 1)"), f(2, "(0, 1, 2)");
-    assert(e.compare(f) == -1);   // shorter is smaller
-    // cross-family comparison throws
-    EpspSS g(2, "(0, 1, 3)");
-    Knuth h("2 ^ 3");
+// The article does NOT define compare / normalize, so they are unsupported
+// (base class throws). This documents that faithful behaviour.
+static void test_unsupported_ops() {
+    EpspSS a(2, "(0, 1, 3)");
+    bool threw_compare = false;
+    try { (void)a.compare(a); } catch (...) { threw_compare = true; }
+    assert(threw_compare);
+}
+
+// The article's literal index (n+m-1)th A is out of range for inputs
+// whose tail is too short (e.g. (0,4,4,4), L=3). Per the user's
+// instruction we do NOT add a cyclic closure; the defensive guard throws.
+static void test_out_of_range_throws() {
+    EpspSS a(2, "(0, 4, 4, 4)");   // L=3, q=4>p -> case 4
     bool threw = false;
-    try { g.compare(h); } catch (const NotComparable&) { threw = true; }
+    try { a.expand(1); } catch (const std::out_of_range&) { threw = true; }
     assert(threw);
 }
 
 int main() {
     test_eps_p_ss();
     test_eps_omega_ss();
-    test_compare();
+    test_unsupported_ops();
+    test_out_of_range_throws();
     std::cout << "test_epspss: all assertions passed\n";
     return 0;
 }

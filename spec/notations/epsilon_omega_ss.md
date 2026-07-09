@@ -42,7 +42,7 @@ $$
 expandLen(A,m)=
 \begin{cases}
 (a_1,a_2,\dots,a_n-1) & m=0 \\[4pt]
-expandLen(A,k)\;\oplus\;\big((n+m-1)\ \text{th}\ A\big)       & m=k+1 \ \land\ a_n = a_k+1 \\[4pt]
+expandLen(A,k)\;\oplus\;\big((m+n-L)\ \text{th}\ A\big)       & m=k+1 \ \land\ a_n = a_k+1 \\[4pt]
 expandLen(A,k)\;\oplus\;\big((n+m-1)\ \text{th}\ A + q\big) & m=k+1 \ \land\ a_n = a_k+q
 \end{cases}
 $$
@@ -55,33 +55,32 @@ expandLen(A,\, m\cdot L - 1) & m>0
 \end{cases}
 $$
 
-**Notes** (same as ε_pSS):
+The two index forms are **kept exactly as written in the article**:
+case 2 uses $(m+n-L)\ \text{th}\ A$ (the gap-1 case), and
+case 3 uses $(n+m-1)\ \text{th}\ A + q$ with $q$ added in full.
+There is no case 4 (no cap). No reinterpretation or unification is applied.
 
-- The case-2 index $(m+n-L)\ \text{th}\ A$ equals the unified $(n+m-1)\ \text{th}\ A$
-  because gap-$1$ forces $L=1$; we use the unified index for all cases.
-- **Closure / 封闭 (⚠ implementation note).** For $m>L$ the index $(n+m-1)\ \text{th}\ A$
-  wraps **cyclically within the tail** $[br+1,\dots,n]$:
-  the $m$-th appended element is $a_{\,br + ((m-1)\bmod L) + 1\,} + q$.
-  This makes the algorithm total without changing the published values for $m\le L$.
+---
 
-### Interface mapping / 接口映射
+## 3. Interface mapping / 接口映射
 - `expand(m)` → `expand(A, m)`; `expand_to(M)` → `expandLen(A, M)`.
 - Both rewrite the internal sequence and return the notation's OWN object
   (never evaluated to a value).
 
 ---
 
-## 3. Comparison / 比较
-`compare()` is **lexicographic** (字典序) on the sequence values (per
-`YSequence::_compare`). Cross-family comparisons throw `NotComparable`.
-
----
-
-## 4. Standard form (normalize) / 标准型
-`normalize()` uses the same `YSequence::checkStandardAndNonMaximum`-style algorithm
-adapted to ε_ωSS's expansion. ⚠ Canonical starter $[0, a_2]$ and exact ε_ωSS
-standard-form semantics to verify; the loop is stall-guarded and leaves a
-non-standard / stalled input unchanged.
+## 4. Implementation notes / 实现说明 (C++ reference branch)
+- The C++ class `googology::ordinal::EpsOmegaSS` implements **only** the
+  formulas above, verbatim. `expandLen` accesses the *original* $A$'s
+  $X$-th element literally as written.
+- **No cyclic closure is added.** As with ε_pSS, an out-of-range article
+  index throws `std::out_of_range` (a defensive guard, not a
+  reinterpretation). Such inputs are outside the article's literal domain.
+- **`compare` and `normalize` are NOT defined by the article**, so they are
+  left to the base class and throw (`NotComparable` / `UnsupportedOperation`).
+- Per the project convention this notation must eventually be ported to
+  **C, Java, Python, and Lean4** (each on its own git branch), aligned to
+  this spec and the golden vectors on `master`.
 
 ---
 

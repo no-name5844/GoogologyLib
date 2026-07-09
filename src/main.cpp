@@ -107,26 +107,27 @@ int main() {
     pn.normalize();
     std::cout << "prss (0,1,2,1) normalize  = " << pn.to_string() << "\n";
 
-    // ε_pSS demos (ordinal / 阶差型, parameterized by p). See
-    // spec/notations/epsilon_p_ss.md. expand(m)=expand(A,m*L-1); the
-    // appended amount is capped at p when the gap exceeds p.
-    EpspSS e1(2, "(0, 1, 3)");            // p=2, gap q=3>p -> case4 (+p)
+    // ε_pSS demos — implemented EXACTLY per the article
+    // (study/notations/epsilon_nSS & epsilon_omegaSS.md). expand(m)=expand(A,m);
+    // expand_to(M)=expandLen(A,M); no closure / no extra opinion added.
+    EpspSS e1(2, "(0, 1, 3)");            // p=2, q=2<=p -> case 3 (+q)
     std::cout << "eps_p(2) (0,1,3)         = " << e1.to_string() << "\n";
     EpspSS e2(2, "(0, 1, 3)");
     std::cout << "eps_p(2) (0,1,3) exp(1)  = " << e2.expand(1).to_string() << "\n";
-    EpspSS e3(2, "(0, 4, 4, 4)");        // p=2, tail L=3, q=4>p -> case4
-    std::cout << "eps_p(2) (0,4,4,4) exp1  = " << e3.expand(1).to_string() << "\n";
-    EpspSS e4(5, "(0, 1, 3)");            // p=5, q=3<=p -> case3 (+q)
-    std::cout << "eps_p(5) (0,1,3) exp(1)  = " << e4.expand(1).to_string() << "\n";
+    EpspSS e3(2, "(0, 1, 3)");
+    std::cout << "eps_p(2) (0,1,3) exp(2)  = " << e3.expand(2).to_string() << "\n";
+    EpspSS e4(5, "(0, 1, 3)");            // p=5, q=2<=p -> case 3 (+q)
+    std::cout << "eps_p(5) (0,1,3) exp(2)  = " << e4.expand(2).to_string() << "\n";
+    EpspSS e5(2, "(0, 1, 2)");            // p=2, q=1 -> case 2 (no add)
+    std::cout << "eps_p(2) (0,1,2) exp(2)  = " << e5.expand(2).to_string() << "\n";
 
-    // ε_ωSS demos (no cap; q added in full). See epsilon_omega_ss.md.
-    EpsOmegaSS w1("(0, 1, 3)");
-    std::cout << "eps_omega (0,1,3) exp(1)  = " << w1.expand(1).to_string() << "\n";
-    EpsOmegaSS w2("(0, 4, 4, 4)");
-    std::cout << "eps_omega (0,4,4,4) exp1  = " << w2.expand(1).to_string() << "\n";
-
-    EpspSS ea(2, "(0, 1, 3)"), eb(2, "(0, 1, 2)");
-    std::cout << "compare(eps_p(2)(0,1,3),(0,1,2)) = " << ea.compare(eb) << "\n";
+    // ε_ωSS demos — no parameter p and no case 4 (q added in full).
+    EpsOmegaSS w1("(0, 1, 3)");            // q=2 -> case 3 (+q, unbounded)
+    std::cout << "eps_omega (0,1,3) exp(2) = " << w1.expand(2).to_string() << "\n";
+    EpsOmegaSS w2("(0, 1, 2)");            // q=1 -> case 2 (no add)
+    std::cout << "eps_omega (0,1,2) exp(2) = " << w2.expand(2).to_string() << "\n";
+    EpsOmegaSS w3("(0, 1, 3)");
+    std::cout << "eps_omega (0,1,3) exp_to1 = " << w3.expand_to(1).to_string() << "\n";
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");

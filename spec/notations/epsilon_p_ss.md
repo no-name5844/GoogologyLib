@@ -50,7 +50,7 @@ $$
 expandLen(A,m)=
 \begin{cases}
 (a_1,a_2,\dots,a_n-1) & m=0 \\[4pt]
-expandLen(A,k)\;\oplus\;\big((n+m-1)\ \text{th}\ A\big)            & m=k+1 \ \land\ a_n = a_k+1 \\[4pt]
+expandLen(A,k)\;\oplus\;\big((m+n-L)\ \text{th}\ A\big)            & m=k+1 \ \land\ a_n = a_k+1 \\[4pt]
 expandLen(A,k)\;\oplus\;\big((n+m-1)\ \text{th}\ A + q\big)  & m=k+1 \ \land\ a_n = a_k+q\ (1<q\le p) \\[4pt]
 expandLen(A,k)\;\oplus\;\big((n+m-1)\ \text{th}\ A + p\big)  & m=k+1 \ \land\ a_n - a_k > p
 \end{cases}
@@ -64,23 +64,14 @@ expandLen(A,\, m\cdot L - 1) & m>0
 \end{cases}
 $$
 
-**Two notes on the published formula** (resolved during implementation):
+The two index forms are **kept exactly as written in the article**:
+case 2 uses $(m+n-L)\ \text{th}\ A$ (the gap-1 case), while
+cases 3/4 use $(n+m-1)\ \text{th}\ A + q$ / $+p$. No reinterpretation
+or unification is applied.
 
-- **The two index forms coincide.** The original text writes the case-2 position as
-  $(m+n-L)\ \text{th}\ A$ but cases 3/4 as $(n+m-1)\ \text{th}\ A$. These are
-  *identical* in every valid input: case 2 is the gap-$1$ case ($a_n = a_k+1$),
-  which forces $a_{n-1}=a_n-1<a_n$, hence $br = n-1$ and $L=1$; then
-  $(m+n-L) = (m+n-1) = (n+m-1)$. We therefore use the **unified** index
-  $(n+m-1)\ \text{th}\ A$ for all cases and only vary the added amount
-  ($0$ for case 2, $q$ for case 3, $p$ for case 4).
-- **Closure / 封闭 (⚠ implementation note).** The index $(n+m-1)\ \text{th}\ A$ lies
-  beyond the sequence once $m > L$. We wrap it **cyclically within the tail**
-  $[br+1,\dots,n]$: the $m$-th appended element reads
-  $a_{\,br + ((m-1)\bmod L) + 1\,}$ (for cases 3/4, with $+q$ or $+p$).
-  This keeps the algorithm **total** (always defined) without changing the
-  published values for $m \le L$.
+---
 
-### Interface mapping / 接口映射
+## 3. Interface mapping / 接口映射
 - `expand(m)` → the definition's `expand(A, m)`.
 - `expand_to(M)` → `expandLen(A, M)` (length-parameterized expansion).
 - Both **rewrite the internal sequence and return the notation's OWN object** —
@@ -88,21 +79,21 @@ $$
 
 ---
 
-## 3. Comparison / 比较
-`compare()` is **lexicographic** (字典序) on the sequence values — exactly the
-order used by `YSequence::_compare` in the reference `AutoGuogaoMachine/YSequence.cpp`.
-Ordinal notations have a well-defined order, so this is defined in principle.
-Cross-family comparisons (e.g. ε_pSS vs a large-number notation) still throw `NotComparable`.
-
----
-
-## 4. Standard form (normalize) / 标准型
-`normalize()` computes the **standard form** via the same algorithm as
-`YSequence::checkStandardAndNonMaximum`, adapted to ε_pSS's own (parameterized)
-expansion. ⚠ The **canonical starter** $[0, a_2]$ (vs YSequence's $[1, a_2+1]$,
-because ε_pSS's base element is $0$) and the exact ε_pSS standard-form semantics
-need verification. The loop is **stall-guarded** so it always terminates; on a stall
-or a non-standard input the sequence is left unchanged.
+## 4. Implementation notes / 实现说明 (C++ reference branch)
+- The C++ class `googology::ordinal::EpspSS` implements **only** the
+  formulas above, verbatim. `expandLen` accesses the *original* $A$'s
+  $X$-th element literally as written (`X th A` = `seq[X-1]`).
+- **No cyclic closure is added.** For some inputs the article's index
+  $(n+m-1)\ \text{th}\ A$ lies beyond the original sequence; rather than
+  silently wrapping, the code throws `std::out_of_range` (a defensive
+  guard, not a reinterpretation of the formula). Such inputs are simply
+  outside the article's literal domain.
+- **`compare` and `normalize` are NOT defined by the article**, so they are
+  left to the base class and throw (`NotComparable` / `UnsupportedOperation`).
+  They are intentionally absent — do not add them as "opinions".
+- Per the project convention this notation must eventually be ported to
+  **C, Java, Python, and Lean4** (each on its own git branch), all
+  aligned to this spec and the golden vectors on `master`.
 
 ---
 
