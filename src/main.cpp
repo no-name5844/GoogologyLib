@@ -1,10 +1,13 @@
 #include <iostream>
+#include <iomanip>
 #include "googology/core/Notation.hpp"
 #include "googology/core/Capability.hpp"
 #include "googology/core/Registry.hpp"
 #include "googology/notations/number/knuth/Knuth.hpp"
 #include "googology/notations/number/conway/Conway.hpp"
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
+#include "googology/notations/ordinal/sequence/difference/epspss/EpspSS.hpp"
+#include "googology/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.hpp"
 
 using namespace googology;
 using namespace googology::number;
@@ -39,9 +42,8 @@ static void printCapabilityMatrix() {
     for (auto& name : registry().list()) {
         auto n = registry().create(name);
         if (!n) continue;
-        std::cout << n->name();
-        for (int i = 0; i < 10 - (int)n->name().size(); ++i) std::cout << ' ';
-        std::cout << familyName(n->family()) << "   ";
+        std::cout << std::left << std::setw(18) << n->name()
+                  << familyName(n->family()) << "   ";
         std::cout << (n->comparable() ? "yes" : "NO (undefined)") << "   ";
         bool first = true;
         for (uint8_t o = 0; o < 8; ++o) {
@@ -60,6 +62,8 @@ int main() {
     registry().add("knuth", [] { return std::make_unique<Knuth>(); });
     registry().add("conway", [] { return std::make_unique<Conway>(); });
     registry().add("prss", [] { return std::make_unique<Prss>(); });
+    registry().add("epsilon_p_ss", [] { return std::make_unique<EpspSS>(); });
+    registry().add("epsilon_omega_ss", [] { return std::make_unique<EpsOmegaSS>(); });
 
     printCapabilityMatrix();
     std::cout << "\n";
@@ -102,6 +106,27 @@ int main() {
     Prss pn("(0, 1, 2, 1)");
     pn.normalize();
     std::cout << "prss (0,1,2,1) normalize  = " << pn.to_string() << "\n";
+
+    // ε_pSS demos (ordinal / 阶差型, parameterized by p). See
+    // spec/notations/epsilon_p_ss.md. expand(m)=expand(A,m*L-1); the
+    // appended amount is capped at p when the gap exceeds p.
+    EpspSS e1(2, "(0, 1, 3)");            // p=2, gap q=3>p -> case4 (+p)
+    std::cout << "eps_p(2) (0,1,3)         = " << e1.to_string() << "\n";
+    EpspSS e2(2, "(0, 1, 3)");
+    std::cout << "eps_p(2) (0,1,3) exp(1)  = " << e2.expand(1).to_string() << "\n";
+    EpspSS e3(2, "(0, 4, 4, 4)");        // p=2, tail L=3, q=4>p -> case4
+    std::cout << "eps_p(2) (0,4,4,4) exp1  = " << e3.expand(1).to_string() << "\n";
+    EpspSS e4(5, "(0, 1, 3)");            // p=5, q=3<=p -> case3 (+q)
+    std::cout << "eps_p(5) (0,1,3) exp(1)  = " << e4.expand(1).to_string() << "\n";
+
+    // ε_ωSS demos (no cap; q added in full). See epsilon_omega_ss.md.
+    EpsOmegaSS w1("(0, 1, 3)");
+    std::cout << "eps_omega (0,1,3) exp(1)  = " << w1.expand(1).to_string() << "\n";
+    EpsOmegaSS w2("(0, 4, 4, 4)");
+    std::cout << "eps_omega (0,4,4,4) exp1  = " << w2.expand(1).to_string() << "\n";
+
+    EpspSS ea(2, "(0, 1, 3)"), eb(2, "(0, 1, 2)");
+    std::cout << "compare(eps_p(2)(0,1,3),(0,1,2)) = " << ea.compare(eb) << "\n";
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");

@@ -17,6 +17,8 @@ add_library(googology
   src/notations/number/knuth/Knuth.cpp
   src/notations/number/conway/Conway.cpp
   src/notations/ordinal/sequence/difference/prss/Prss.cpp
+  src/notations/ordinal/sequence/difference/epspss/EpspSS.cpp
+  src/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.cpp
 )
 target_include_directories(googology PUBLIC include)
 
@@ -32,7 +34,11 @@ target_link_libraries(test_conway PRIVATE googology)
 add_executable(test_prss tests/unit/test_prss.cpp)
 target_link_libraries(test_prss PRIVATE googology)
 
+add_executable(test_epspss tests/unit/test_epspss.cpp)
+target_link_libraries(test_epspss PRIVATE googology)
+
 enable_testing()
 add_test(NAME test_knuth COMMAND test_knuth)
 add_test(NAME test_conway COMMAND test_conway)
 add_test(NAME test_prss COMMAND test_prss)
+add_test(NAME test_epspss COMMAND test_epspss)
