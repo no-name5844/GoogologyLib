@@ -154,7 +154,8 @@ cross-family bridge is provided (the former `ToOrdinal` is removed).
   对应 `study/notations/weak-Veblen-like notation.md`：6 个 case 的 `expand`
   **逐字**实现，序数算术由 `core/Ordinal` 支撑。⚠ **直承 `Notation`**
   （C4），**不**继承 `OrdinalNotation`：它不是自然数序列记号、文章
-  **未给标准型 / `compare` 算法**，故只暴露 FromString/ToString/Expand。
+  **未给标准型 / `normalize` / `successor` 算法**（但 §1.3 已给
+  `compare`），故暴露 FromString/ToString/Expand/**Compare**。
 
 大数记号（knuth/conway）刻意**不**支持 `Compare`；序数序列记号通过 `OrdinalNotation`
 继承 `normalize()` / `isSuccessor()` 与 `Compare`（`prss` 已实现 `compare`；`eps_p_ss` /

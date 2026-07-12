@@ -16,8 +16,9 @@ namespace ordinal {
 //   * expansion follows the article's 6-case dispatch verbatim; the ordinal
 //     arithmetic inside (+1, ^, expand(b,n)) is supplied by the Ordinal
 //     core (core/Ordinal.hpp), which itself follows `study/notations/Ordinal.md`.
-//   * the article defines NO compare / normalize / successor clause for this
-//     notation, so capabilities report only FromString / ToString / Expand.
+//   * the article supplies a `compare` clause (§1.3: is_equal /
+//     is_greater / compare), so `Compare` is reported. It defines NO
+//     normalize / successor clause, so those stay omitted (base throws).
 //
 // Internally holds an `Ordinal` (the (a@b) expression tree, or — after
 // expansion — an ordinal expression the article's cases may produce, e.g.
@@ -33,6 +34,14 @@ namespace ordinal {
 // user should decide whether a standard-form concept belongs here.
 class WeakVeblen : public Notation {
     Ordinal ord_;   // the (a@b) expression tree
+
+    // compare helpers (article §1.3). Declared as static members so the
+    // `friend class WeakVeblen` grant lets them reach Ordinal::comps()
+    // (private). See WeakVeblen.cpp.
+    static int cmpWV_(const Ordinal& A, const Ordinal& B);
+    static int cmpLists_(const std::vector<std::pair<Ordinal, Ordinal>>& Ca,
+                         const std::vector<std::pair<Ordinal, Ordinal>>& Cb);
+    static int cmpOrd_(const Ordinal& X, const Ordinal& Y);
 
     // parse "a1@b1, a2@b2, ..." (already stripped of outer parens)
     void parseBody_(const std::string& body);
@@ -58,6 +67,14 @@ public:
     // expansion is NOT in the article -> left to the base class (throws
     // UnsupportedOperation).
     WeakVeblen& expand(BigInt n) override;
+
+    // compare(A, B) per article §1.3 (is_equal / is_greater / compare).
+    // Returns 1 if *this > other, 0 if equal, -1 if *this < other.
+    // Defined on WV standard-form expressions; throws NotComparable for a
+    // non-WeakVeblen operand. See WeakVeblen.cpp for the verbatim
+    // lexicographic (primary key = second coordinate @b, secondary = @a)
+    // implementation and the one intentional reading note (flag C5 there).
+    int compare(const Notation& other) const override;
 
     // A[n] — the n-th term of the fundamental sequence of the ordinal A
     // denotes. Equivalent to expand(A, n). Does NOT mutate *this (returns

@@ -3,7 +3,7 @@
 - **Family / 族**: ordinal (序数记号)
 - **Subfamily / 子族**: veblen (经典序数 / classic ordinal)
 - **Style / 风格**: weak-like
-- **Compare / 比较**: **NOT implemented per "照文章写" / 未按"逐字实现"提供**（见第 5 节 C4 说明）
+- **Compare / 比较**: **已实现（逐字转录 §1.3 的 is_equal / is_greater / compare）**；见第 5 节 C4 / C5。
 - **Supported ops / 支持运算**: FromString, ToString, Expand
 - **Evaluate / 求值**: **not provided / 不提供**（一律不求值 / never evaluated）
 
@@ -66,7 +66,42 @@
 \mathrm{expand}(A,n)=(\#,\mathrm{expand}(a,n)@b)
 \]
 
+## 1.3 compare 函数
+
+对于 \(A=(a_1@i_1,a_2@i_2,\dots,a_n@i_n),B=(b_1@j_1,b_2@j_2,\dots,b_m@j_m)\)
+\[
+\mathrm{is\_equal}(A,B)=\begin{cases}
+\mathrm{true} & a_1=b_1,\ i_1=j_1,\ n=m=1\\
+\mathrm{false} & a_1\neq b_1,\ i_1\neq j_1\\
+\mathrm{false} & n\neq m\\
+\mathrm{false} & i_1\neq j_1\\
+\mathrm{false} & a_1\neq b_1,\ i_1=j_1\\
+\mathrm{is\_equal}((a_2@i_2,\dots,a_n@i_n),(b_2@j_2,\dots,b_m@j_m)) & n,m>1
+\end{cases}
+\]
+\[
+\mathrm{is\_greater}(A,B)=\begin{cases}
+\mathrm{true} & i_1>j_1\\
+\mathrm{true} & a_1> b_1,\ i_1=j_1\\
+\mathrm{true} & n>m=1,\ a_1=b_1\\
+\mathrm{false} & i_1\le j_1\\
+\mathrm{false} & a_1\le b_1,\ i_1=j_1\\
+\mathrm{false} & n=1\ge m,\ a_1=b_1\\
+\mathrm{is\_greater}((a_2@i_2,\dots,a_n@i_n),(b_2@j_2,\dots,b_m@j_m)) & n,m>1
+\end{cases}
+\]
+\[
+\mathrm{compare}(A,B)=\begin{cases}
+1 & \mathrm{is\_greater}(A,B)\\
+0 & \mathrm{is\_equal}(A,B)\\
+-1 & \lnot(\mathrm{is\_greater}(A,B)\land\mathrm{is\_equal}(A,B))
+\end{cases}
+\]
+
 > 原文为简体中文，此处**逐字转录**，未改动任何符号 / transcribed verbatim.
+> 字母约定：§1.3 用 \(i_k\) 表示第 \(k\) 个分量的**第二坐标**（即 \((a_k@i_k)\) 里的 `@i_k`，本库记作 `comps_[k].second`），
+> 用 \(a_k/b_k\) 表示**第一坐标**（`comps_[k].first`）。与 §1.1 的 \(b_k\) 为同一量，仅记法不同。
+> 比较是**字典序**：主键为第二坐标 \(i_k\)（most significant），次键为第一坐标 \(a_k\)；分量全相等时**较长者更大**（前缀规则）。见第 2、5 节实现与 C5 注记。
 
 ---
 
@@ -137,17 +172,28 @@
   原因有二：(a) 它是**序数对 \((a@b)\)** 记号，不是自然数序列
   （如 PrSS）记号；(b) 文章**未给出标准型算法**，也未给出 `compare` 算法
   （仅陈述"在标准型下满足字典序比较"这一*性质*，未给*算法*）。
-  按"照文章写"（不补文章所无），故只暴露 FromString / ToString / Expand；
-  `compare` / `normalize` / `expand_to` 不实现（基类抛 `UnsupportedOperation`）。
+  按"照文章写"（不补文章所无）：`normalize` / `successor` 不实现
+  （基类抛 `UnsupportedOperation`）。**但 `compare` 已有现成算法**——用户后续
+  提供了 §1.3（`is_equal` / `is_greater` / `compare`），故 `Compare` 能力现已暴露（见 §2 实现与 C5 注记）。
 
-> ⚠ **开放决策 / open decision.** 文章明确写道"该记号在标准型下满足字典序比较"，
-> 但**未给出** `compare` 或标准型的具体算法。当前实现**未**提供 `compare`
-> （遵循"逐字实现、不增补"）。若日后要提供比较，须先确定标准型定义——
-> 这超出文章文本，需用户确认。
-> The article *states* lexicographic comparison under standard form but gives
-> *no algorithm*. Current code omits `compare` (faithful to "transcribe only").
-> Adding one requires a standard-form definition first — out of scope of the text,
-> pending user decision.
+- **C5 — §1.3 `is_greater` 的 `<=` 解读 / reading of the `<=` guards**：
+  文章 `is_greater` 的兜底条件写作 `false 若 i_1 ≤ j_1` 与
+  `false 若 a_1 ≤ b_1, i_1=j_1`。若按"自上而下首个命中即返回"的
+  **字面**读法，递归分支（`n,m>1` 时的 `is_greater(tail)`）将**永不可达**——
+  因为 `i_1 = j_1`（相等）会命中 `i_1 ≤ j_1` 而提前返回 `false`，
+  永远走不到递归。文章本意显然是"*严格*小于才返回 false，相等则继续比较
+  后续分量 / 递归"，故实现在这两个点取**严格 `<`**。这是**唯一**一处必要
+  修正，且它**仅让文章自身的递归可达**——**未引入任何新行为**，
+  属对意图的忠实解读（不增补）。序数算术落在 `core/Ordinal` 的 CNF
+  比较（分量须为闭序数，见 `spec/notations/ordinal.md` C3；若某分量为 WV
+  表达式则按 §1.3 递归比较该 WV 表达式）。
+
+> ⚠ **残留开放项 / still-open.** `normalize` 与 `successor` 文章仍**未给**
+> 算法，故不实现（基类抛 `UnsupportedOperation`）。`compare` 现已按 §1.3
+> 实现（见 C5）。若日后要加标准型，须先确定标准型定义——超出文章文本，
+> 需用户确认。
+> `normalize` / `successor` are still NOT given by the article, so they stay
+> unimplemented. `compare` is now implemented per §1.3 (see C5).
 
 ---
 
@@ -178,4 +224,19 @@ case4a (2@3, 1@1)  expand(0) = (2@3, 0@1) + 1
 case4b (2@3, 1@1)  expand(1) = (2@3, 0@1, ((2@3, 0@1) + 1)@0)
 case5  (2@3, 1@ω)  expand(3) = (2@3, 0@ω, 1@3)
 case6  (2@4, ω@3)   expand(3) = (2@4, 3@3)
+```
+
+`compare`（§1.3，主键第二坐标 `@b`、次键 `@a`、较长者更大）向量：
+
+```
+cmp((1@0),  (0@0))  =  1   # 次键 a: 1 > 0
+cmp((0@1),  (0@0))  =  1   # 主键 i: 1 > 0
+cmp((0@0),  (0@1))  = -1   # 镜像
+cmp((1@0,1@0), (1@0))    =  1   # 前缀规则：较长者更大
+cmp((1@0), (1@0,1@0))  = -1   # 镜像
+cmp((1@0,0@0), (1@0,1@0)) = -1   # 分量1 次键 a: 0 < 1
+cmp((2@3,1@0), (2@3,0@0)) =  1   # 分量1 次键 a: 1 > 0
+cmp((0@5),  (100@0)) =  1   # 主键 i 主导 (5 > 0)
+cmp((5@0),  (1@0))  =  1   # i 相等, 次键 a: 5 > 1
+cmp((0@1),  (0@0))  = -cmp((0@0),(0@1))   # 反对称
 ```

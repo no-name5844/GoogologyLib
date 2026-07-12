@@ -134,7 +134,10 @@ int main() {
     // weak-Veblen-like demos (zahin). Implemented EXACTLY per the article's
     // 6-case expand; the ordinal arithmetic (+1, ^, expand(b,n)) is supplied
     // by core/Ordinal.hpp (which follows study/notations/Ordinal.md). The
-    // article defines no compare / normalize / expand_to for this notation.
+    // article §1.3 DOES supply a compare (is_equal/is_greater/compare),
+    // so compare() is implemented (lexicographic, primary key = second @b
+    // coord, secondary = first @a coord; longer wins on prefix). No normalize
+    // / expand_to is defined by the article.
     WeakVeblen v1("(2@3, 1@0)");
     std::cout << "wv (2@3, 1@0)        = " << v1.to_string() << "\n";
     WeakVeblen v2("(2@3, 1@0)");
@@ -150,6 +153,16 @@ int main() {
     // A[n] convenience (non-mutating): A[1] == expand(A,1)
     WeakVeblen v7("(2@3, 1@0)");
     std::cout << "wv (2@3, 1@0)[1]     = " << v7[1].to_string() << "\n";
+    // compare (article §1.3): primary key = second coord @b, secondary = @a;
+    // longer wins on prefix.
+    WeakVeblen ca("(1@0)"), cb("(0@0)");
+    std::cout << "wv compare((1@0),(0@0)) = " << ca.compare(cb) << "\n";   // +1 (a:1>0)
+    WeakVeblen cc("(0@1)"), cd("(0@0)");
+    std::cout << "wv compare((0@1),(0@0)) = " << cc.compare(cd) << "\n";   // +1 (i:1>0)
+    WeakVeblen ce("(0@5)"), cf("(100@0)");
+    std::cout << "wv compare((0@5),(100@0)) = " << ce.compare(cf) << "\n"; // +1 (i dominates)
+    WeakVeblen cg("(1@0, 1@0)"), ch("(1@0)");
+    std::cout << "wv compare((1@0,1@0),(1@0)) = " << cg.compare(ch) << "\n"; // +1 (prefix)
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");

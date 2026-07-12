@@ -1,5 +1,6 @@
 #include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
 #include "googology/core/Ordinal.hpp"
+#include "googology/notations/number/knuth/Knuth.hpp"
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
@@ -55,9 +56,40 @@ static void test_wv_cases() {
       CHECK_EQ(A.expand(3).to_string(), "(2@4, 3@3)"); }
 }
 
+// --- compare (article §1.3: is_equal / is_greater / compare) ---
+// Lexicographic: PRIMARY key = second coord (i / @b), SECONDARY = first
+// coord (a / @a); when prefixes match, the longer expression wins.
+static void test_wv_compare() {
+    auto cmp = [](const char* x, const char* y) {
+        return WeakVeblen(x).compare(WeakVeblen(y));
+    };
+    CHECK_EQ(cmp("(0@0)", "(0@0)"), 0);                 // identical
+    CHECK_EQ(cmp("(1@0)", "(0@0)"), 1);                 // secondary a: 1 > 0
+    CHECK_EQ(cmp("(0@1)", "(0@0)"), 1);                 // primary i: 1 > 0
+    CHECK_EQ(cmp("(0@0)", "(0@1)"), -1);                // mirror
+    CHECK_EQ(cmp("(1@0, 1@0)", "(1@0)"), 1);          // prefix rule: longer wins
+    CHECK_EQ(cmp("(1@0)", "(1@0, 1@0)"), -1);         // mirror
+    CHECK_EQ(cmp("(1@0, 0@0)", "(1@0, 1@0)"), -1);   // comp1 a: 0 < 1
+    CHECK_EQ(cmp("(2@3, 1@0)", "(2@3, 0@0)"), 1);   // comp1 a: 1 > 0
+    CHECK_EQ(cmp("(0@5)", "(100@0)"), 1);                // primary i dominates (5 > 0)
+    CHECK_EQ(cmp("(5@0)", "(1@0)"), 1);                  // i equal, secondary a: 5 > 1
+    // anti-symmetry
+    CHECK_EQ(cmp("(0@1)", "(0@0)"), -cmp("(0@0)", "(0@1)"));
+    // capabilities report Compare
+    CHECK(WeakVeblen("(1@0)").can(Op::Compare));
+
+    // cross-family comparison is undefined -> NotComparable
+    bool threw = false;
+    try { (void)WeakVeblen("(1@0)").compare(googology::number::Knuth("3^3")); }
+    catch (const NotComparable&) { threw = true; }
+    catch (...) {}
+    CHECK(threw);
+}
+
 int main() {
     test_ordinal_core();
     test_wv_cases();
+    test_wv_compare();
     if (failures == 0) std::cout << "test_weakveblen: all assertions passed\n";
     else std::cout << "test_weakveblen: " << failures << " FAILURE(S)\n";
     return failures == 0 ? 0 : 1;

@@ -96,6 +96,13 @@ public:
 
     Kind kind() const { return kind_; }
 
+    // WV component list (read accessor). Public so notation wrappers
+    // (e.g. WeakVeblen) can read the (a@b) pairs. The earlier
+    // `friend class WeakVeblen;` was in the wrong namespace and granted
+    // access to a distinct empty class, so we expose this read-only
+    // accessor instead.
+    const std::vector<std::pair<Ordinal, Ordinal>>& comps() const { return comps_; }
+
     // ---- arithmetic builders (return expression nodes, never reduce) ----
     Ordinal operator+(const Ordinal& o) const { return add(*this, o); }
     Ordinal operator*(const Ordinal& o) const { return mul(*this, o); }
@@ -280,10 +287,9 @@ private:
         return {};
     }
 
-    // accessors used by the WeakVeblen expand cases
-    const std::vector<std::pair<Ordinal, Ordinal>>& comps() const { return comps_; }
+    // expandWV (the 6 weak-Veblen cases) is an Ordinal-internal
+    // helper, called only by Ordinal::expand(), so it stays private.
     Ordinal expandWV(long long n) const;   // the 6 WV cases
-    friend class WeakVeblen;   // declared in notations/ordinal/veblen/weakveblen
 
     // Render an (a@b) component: wrap in parens when its string contains a
     // space or parenthesis, so that e.g. (2@3,0@1)+1 does not read as
