@@ -8,6 +8,7 @@
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 #include "googology/notations/ordinal/sequence/difference/epspss/EpspSS.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.hpp"
+#include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
 
 using namespace googology;
 using namespace googology::number;
@@ -64,6 +65,7 @@ int main() {
     registry().add("prss", [] { return std::make_unique<Prss>(); });
     registry().add("epsilon_p_ss", [] { return std::make_unique<EpspSS>(); });
     registry().add("epsilon_omega_ss", [] { return std::make_unique<EpsOmegaSS>(); });
+    registry().add("weak_veblen", [] { return std::make_unique<WeakVeblen>(); });
 
     printCapabilityMatrix();
     std::cout << "\n";
@@ -128,6 +130,26 @@ int main() {
     std::cout << "eps_omega (0,1,2) exp(2) = " << w2.expand(2).to_string() << "\n";
     EpsOmegaSS w3("(0, 1, 3)");
     std::cout << "eps_omega (0,1,3) exp_to1 = " << w3.expand_to(1).to_string() << "\n";
+
+    // weak-Veblen-like demos (zahin). Implemented EXACTLY per the article's
+    // 6-case expand; the ordinal arithmetic (+1, ^, expand(b,n)) is supplied
+    // by core/Ordinal.hpp (which follows study/notations/Ordinal.md). The
+    // article defines no compare / normalize / expand_to for this notation.
+    WeakVeblen v1("(2@3, 1@0)");
+    std::cout << "wv (2@3, 1@0)        = " << v1.to_string() << "\n";
+    WeakVeblen v2("(2@3, 1@0)");
+    std::cout << "wv (2@3, 1@0) exp(0) = " << v2.expand(0).to_string() << "\n";
+    WeakVeblen v3("(2@3, 1@0)");
+    std::cout << "wv (2@3, 1@0) exp(1) = " << v3.expand(1).to_string() << "\n";
+    WeakVeblen v4("(2@3, 1@1)");
+    std::cout << "wv (2@3, 1@1) exp(0) = " << v4.expand(0).to_string() << "\n";
+    WeakVeblen v5("(2@3, 1@ω)");
+    std::cout << "wv (2@3, 1@ω) exp(3) = " << v5.expand(3).to_string() << "\n";
+    WeakVeblen v6("(2@4, ω@3)");
+    std::cout << "wv (2@4, ω@3) exp(3) = " << v6.expand(3).to_string() << "\n";
+    // A[n] convenience (non-mutating): A[1] == expand(A,1)
+    WeakVeblen v7("(2@3, 1@0)");
+    std::cout << "wv (2@3, 1@0)[1]     = " << v7[1].to_string() << "\n";
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");

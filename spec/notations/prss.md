@@ -3,8 +3,9 @@
 - **Family / 族**: ordinal (序数记号)
 - **Subfamily / 子族**: sequence (自然数序列记号)
 - **Style / 风格**: difference (阶差型)
-- **Compare / 比较**: DEFINED — lexicographic on the sequence values (字典序; per YSequence.cpp `_compare`)
-- **Supported ops / 支持运算**: FromString, ToString, Expand, ExpandTo
+- **Compare / 比较**: DEFINED — lexicographic on the sequence values (字典序)
+- **Supported ops / 支持运算**: FromString, ToString, Expand, ExpandTo, Normalize, Compare, Successor
+- **`normalize()` / `isSuccessor()`**: 非虚的 `OrdinalNotation` 基类（继承 `Notation`）函数（所有序数序列记号共用同一份实现，仅由 `baseVal_` 区分；不属求值类）
 - **Evaluate / 求值**: **not provided / 不提供**（一律不求值 / never evaluated）
 
 > PrSS occupies the `ordinal/sequence/difference/` slot in the taxonomy. It is the
@@ -47,7 +48,7 @@ Notation / 记法：the \(i\)-th element of \(A\) is \(a_i\) (written "`i th A =
 
 ### Expansion / 展开
 
-Empty / 末尾为 1 / General cases:
+Empty / 末尾为 0（后继）/ General cases:
 
 \[
 \begin{aligned}
@@ -62,7 +63,7 @@ Empty / 末尾为 1 / General cases:
 \text{expand}(A,m) &= (a_1, a_2, \dots, a_n) \\
 \text{expandLen}(A,m) &= (a_1, a_2, \dots, a_n)
 \end{aligned}
-\qquad (A = (a_1,\dots,a_n,1))
+\qquad (A = (a_1,\dots,a_n,0))
 \]
 
 Otherwise (general \(A = (a_1,\dots,a_n)\)) / 其它情形（一般 \(A\)）：
@@ -76,7 +77,7 @@ Otherwise (general \(A = (a_1,\dots,a_n)\)) / 其它情形（一般 \(A\)）：
 \text{expandLen}(A,m) =
 \begin{cases}
 (a_1, a_2, \dots, a_n - 1) & m = 0 \\[4pt]
-\text{expandLen}(A, k) \oplus \bigl((m+n-L)\text{ th } A\bigr) & m = k+1
+\text{expandLen}(A, k) \oplus \bigl((m+n-L)\ \text{th}\ \text{expandLen}(A,k)\bigr) & m = k+1
 \end{cases}
 \]
 
@@ -88,49 +89,37 @@ Otherwise (general \(A = (a_1,\dots,a_n)\)) / 其它情形（一般 \(A\)）：
 \end{cases}
 \]
 
-### ⚠ Closure for totality / 保证完全性的封闭处理
-
-The source writes the appended element as "`(m+n-L) th A`" = \(a_{m+n-L}\).
-For \(m \le L\) this indexes exactly one copy of the tail
-\(a_{br+1},\dots,a_n\). But when more than \(L\) elements are appended
-(e.g. \(\text{expand}(A, m)\) with \(m\ge 2\) calls
-\(\text{expandLen}(A, m\cdot L - 1)\), whose step count exceeds \(L\)),
-the index \(m+n-L\) runs past the end of the original sequence
-(\(a_{n+1}, a_{n+2}, \dots\) are undefined).
-
-To make the algorithm total we interpret the index **cyclically within the
-tail** / 为保证算法完全，把该索引解释为在尾巴内**循环取**：
-
-\[
-\text{the element appended at step } s \text{ is }
-a_{\,br + ((s-1) \bmod L) + 1},
-\qquad s = 1,2,3,\dots
-\]
-
-This coincides with \(a_{m+n-L}\) for \(m = 1,\dots,L\) and wraps correctly
-beyond that. Equivalent recursive form / 等价的递归写法：
-
-\[
-\text{expandLen}(A, m) =
-\begin{cases}
-(a_1, \dots, a_n - 1) & m = 0 \\[4pt]
-\text{expandLen}(A, m-1) \oplus a_{\,br + ((m-1) \bmod L) + 1} & m \ge 1
-\end{cases}
-\]
+> **Indexing note / 索引说明.** The element appended at stage \(m=k+1\)
+> is the \((m+n-L)\)-th element of \(\text{expandLen}(A,k)\) — i.e. of the
+> **running (already-grown) sequence**, *not* of the original \(A\). As the
+> sequence is built up, later appends read from the tail that has accumulated
+> so far. The article defines **no cyclic wrap**; none is applied. An index
+> that falls beyond the running sequence is simply out of the article's literal
+> domain (the code throws a defensive `std::out_of_range`).
 
 ## Expansion trace / 展开轨迹
 
-Example / 例：\(A = (0, 1, 2)\).  \(n=3,\ a_n=2,\ br=2,\ L=1\), tail = \((a_3)=(2)\).
+For \(A = (0, 1, 2)\): \(n=3,\ a_n=2,\ br=2,\ L=1\).
+\(m>0\) maps to \(\text{expand}(A,m)=\text{expandLen}(A, m\cdot L-1)
+= \text{expandLen}(A, m-1)\), and each append reads from the running sequence:
 
 ```
-expand((0,1,2), 0) = expandLen((0,1,2), 0)        = (0, 1, 1)
-expand((0,1,2), 1) = expandLen((0,1,2), 1*1 - 1)  = (0, 1, 1)
-expand((0,1,2), 2) = expandLen((0,1,2), 2*1 - 1)  = (0, 1, 1, 2)
-expand((0,1,2), 3) = expandLen((0,1,2), 3*1 - 1)  = (0, 1, 1, 2, 2)
+expand((0,1,2), 0) = expandLen((0,1,2), 0)          = (0, 1, 1)
+expand((0,1,2), 1) = expandLen((0,1,2), 0)          = (0, 1, 1)
+expand((0,1,2), 2) = expandLen((0,1,2), 1)          = (0, 1, 1, 1)
+expand((0,1,2), 3) = expandLen((0,1,2), 2)          = (0, 1, 1, 1, 1)
+```
+
+The telling case is \(A = (0, 1, 2, 2)\): \(n=4,\ a_n=2,\ br=2,\ L=2\),
+\(m>0 \Rightarrow \text{expand}(A,m)=\text{expandLen}(A, 2m-1)\):
+
+```
+expand((0,1,2,2), 1) = expandLen((0,1,2,2), 1)     = (0, 1, 2, 1, 2)
+expand((0,1,2,2), 2) = expandLen((0,1,2,2), 3)     = (0, 1, 2, 1, 2, 1, 2)
 ```
 
 The library stops at the symbolic form; it never reduces
-\((0,1,1,2,2)\) to a numeral / 库停在符号形式，绝不把 \((0,1,1,2,2)\) 坍缩成数。
+\((0,1,2,1,2,1,2)\) to a numeral / 库停在符号形式，绝不把 \((0,1,2,1,2,1,2)\) 坍缩成数。
 
 ## String syntax (parser) / 字符串语法
 
@@ -152,24 +141,22 @@ The library stops at the symbolic form; it never reduces
 
 ## Standard form (normalize) / 标准型
 
-PrSS supports `normalize()` (the **standard form / 标准型** computation), adapted
-from `YSequence::checkStandardAndNonMaximum` in
-`AutoGuogaoMachine/AutoGuogaoMachine/YSequence.cpp`. The algorithm builds a
-canonical PrSS from the input's second element and expands it (using PrSS's own
-`expand`) until it dominates the input; the result replaces the sequence.
+PrSS supports `normalize()` (the **standard form / 标准型** computation): it
+builds a canonical PrSS from the input's second element and expands it (using
+PrSS's own `expand`) until it dominates the input; the result replaces the
+sequence.
 
 - Canonical starter / 规范起点: `[0, a_2]` for PrSS (the base element is 0).
-  YSequence uses `[1, a_2+1]`; the PrSS analogue is **⚠ to be verified / 待核对**.
+  **⚠ to be verified / 待核对**.
 - The loop is stall-guarded so it always terminates; on a stall or a
   non-standard input the sequence is left unchanged.
 - ⚠ The exact PrSS standard-form semantics (and whether `normalize` should
-  also enforce the four defining conditions) need your confirmation.
+  also enforce the four defining conditions) need confirmation.
 
 ## Comparison / 比较
 
-`compare()` is **lexicographic (字典序)** on the sequence values — exactly
-`YSequence::_compare` in the reference. This resolves the earlier TODO: ordinal
-notations have a well-defined order, and for a natural-number sequence notation
+`compare()` is **lexicographic (字典序)** on the sequence values. Ordinal
+notations have a well-defined order; for a natural-number sequence notation
 the order is the lexicographic order of the sequences / 序数记号有良定义序；对自然数序列记号，
-比较即序列的字典序（与 YSequence.cpp 的 `_compare` 一致）。 Cross-family comparisons
-(e.g. PrSS vs a large-number notation) still throw `NotComparable`.
+比较即序列的字典序。 Cross-family comparisons (e.g. PrSS vs a large-number
+notation) still throw `NotComparable`.

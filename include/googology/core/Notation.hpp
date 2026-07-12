@@ -2,6 +2,7 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <vector>
 #include "googology/config.hpp"
 #include "googology/core/Capability.hpp"
 
@@ -38,6 +39,12 @@ struct NotComparable : std::runtime_error {
 // notation's OWN object (so it can be serialized again or expanded further).
 // Only the string functions to_string() / string_to_it() deal with strings:
 // to_string() emits LaTeX, string_to_it() accepts ASCII or Unicode forms.
+//
+// Standard form (标准型) lives one level down, in OrdinalNotation (see
+// core/OrdinalNotation.hpp): the *definition* is universal across all ordinal
+// notations, and — for the ordinal SEQUENCE notations — the *algorithm* is
+// identical too. Number notations (Knuth / Conway) derive straight from this
+// class and never carry standard-form logic.
 class Notation {
 public:
     virtual ~Notation() = default;
@@ -59,11 +66,9 @@ public:
     // --- operations: these return the notation's OWN type (so it can be
     //     further expanded / serialized), NEVER a string. Only to_string()
     //     produces a string. ---
-    virtual void normalize() { throw UnsupportedOperation(name(), Op::Normalize); }
     virtual int compare(const Notation&) const { throw NotComparable(name()); }
     virtual Notation& expand(BigInt /*n*/) { throw UnsupportedOperation(name(), Op::Expand); }
     virtual Notation& expand_to(BigInt /*len*/) { throw UnsupportedOperation(name(), Op::ExpandTo); }
-    virtual bool isSuccessor() const { throw UnsupportedOperation(name(), Op::Successor); }
 
     // Large-number notations return false: comparison is generally undefined.
     virtual bool comparable() const { return can(Op::Compare); }

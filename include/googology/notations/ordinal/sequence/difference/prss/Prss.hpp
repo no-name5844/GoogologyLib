@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include "googology/core/Notation.hpp"
+#include "googology/core/OrdinalNotation.hpp"
 #include "googology/core/Capability.hpp"
 
 namespace googology {
@@ -16,25 +16,17 @@ namespace ordinal {
 // number/ordinal: expand()/expand_to()/normalize() rewrite the internal
 // sequence and return *this (a Prss object). to_string() emits LaTeX.
 //
-// Standard form (标准型) is computed by normalize(), adapted from
-// YSequence::checkStandardAndNonMaximum (YSequence.cpp), using PrSS's own
-// expansion. The comparison used by compare() is lexicographic, mirroring
-// YSequence::_compare.
-class Prss : public Notation {
-    std::vector<BigInt> seq_;
-
+// Standard form (标准型) is computed by normalize(); see the project's
+// universal definition (any expression obtainable from a limit expression by
+// finitely many expansions + taking a prefix is a legal expression). compare()
+// uses lexicographic ordinal order over the sequence.
+class Prss : public OrdinalNotation {
     // rightmost 1-based column index whose value is < an (the last element);
-    // returns 0 if none (tail = whole sequence).
+    // returns 0 if none.
     BigInt rightmostLess_(BigInt an) const;
-    // expandLen(A, M): decrement last, then append M elements from the tail
-    // (columns br+1..n) cyclically. Mutates *this.
+    // expandLen(A, M): decrement last, then append M elements per the
+    // article's recursive rule (each indexed from the running sequence). Mutates *this.
     Prss& expandLen_(BigInt M);
-
-    // Expand `work` until its sequence exceeds `target` in the prefix starting
-    // at startIdx; returns the number of elements added, or -1 if non-standard.
-    // Mirrors YSequence::_expandUntilLarger. ⚠ exact PrSS semantics to verify.
-    static BigInt expandUntilLarger_(Prss& work, const std::vector<BigInt>& target,
-                                      size_t startIdx);
 
 public:
     Prss() = default;
@@ -54,13 +46,12 @@ public:
     Prss& expand(BigInt n) override;
     Prss& expand_to(BigInt len) override;
 
-    // Standard form (标准型). ⚠ canonical starter + exact semantics for PrSS
-    // need verification (adapted from YSequence.cpp).
-    void normalize() override;
-    bool isSuccessor() const override;
+    // A[n] — the n-th term of the fundamental sequence of the ordinal A
+    // denotes. Equivalent to expand(A, n). Does NOT mutate *this.
+    Prss operator[](BigInt n) const;
 
-    // Lexicographic comparison (from YSequence::_compare). Throws NotComparable
-    // for non-Prss arguments.
+    // Lexicographic comparison (ordinal order over the sequence). Throws
+    // NotComparable for non-Prss arguments.
     int compare(const Notation& other) const override;
 
     friend std::istream& operator>>(std::istream& is, Prss& p);

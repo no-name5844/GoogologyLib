@@ -12,24 +12,28 @@ int main() {
     assert(Prss("0,1,2").to_string() == "(0, 1, 2)");
     assert(Prss("[0,1,2]").to_string() == "(0, 1, 2)");
 
-    // expand(m) per spec/notations/prss.md (cyclic tail wrap).
-    // (0,1,2): n=3, a_n=2, br=2, L=1, tail=(2).
+    // expand(m) VERBATIM per the PrSS article: a single recursive case
+    // indexing the RUNNING sequence (no cyclic tail wrap).
+    // (0,1,2): n=3, a_n=2, br=2, L=1.
     assert(Prss("(0,1,2)").expand(0).to_string() == "(0, 1, 1)");
     assert(Prss("(0,1,2)").expand(1).to_string() == "(0, 1, 1)");
-    assert(Prss("(0,1,2)").expand(2).to_string() == "(0, 1, 1, 2)");
+    assert(Prss("(0,1,2)").expand(2).to_string() == "(0, 1, 1, 1)");
+    assert(Prss("(0,1,2)").expand(3).to_string() == "(0, 1, 1, 1, 1)");
 
-    // (0,1,2,2,2): n=5, a_n=2, br=2, L=3, tail=(2,2,2).
+    // (0,1,2,2,2): n=5, a_n=2, br=2, L=3.
     assert(Prss("(0,1,2,2,2)").expand(0).to_string() == "(0, 1, 2, 2, 1)");
     assert(Prss("(0,1,2,2,2)").expand(1).to_string() == "(0, 1, 2, 2, 1, 2, 2)");
 
-    // ends with 1: expand drops the trailing 1
-    assert(Prss("(0,1,2,1)").expand(1).to_string() == "(0, 1, 2)");
+    // PrSS successor ends in 0: expand drops the trailing 0 (regardless of m)
+    assert(Prss("(0,1,0)").expand(3).to_string() == "(0, 1)");
+    assert(Prss("(0,1,0)").isSuccessor() == true);
+    assert(Prss("(0,1,2)").isSuccessor() == false);
 
-    // expand_to(M) = expandLen(A, M): decrement last, append M tail elements.
-    // (0,1,2) tail=(2): expand_to(3) -> (0,1,1) + 2,2,2 = (0,1,1,2,2,2)
-    assert(Prss("(0,1,2)").expand_to(3).to_string() == "(0, 1, 1, 2, 2, 2)");
+    // expand_to(M) = expandLen(A, M): decrement last, append M elements.
+    // (0,1,2): expand_to(3) -> (0,1,1) + 1,1,1 = (0,1,1,1,1,1)
+    assert(Prss("(0,1,2)").expand_to(3).to_string() == "(0, 1, 1, 1, 1, 1)");
 
-    // compare() is lexicographic (from YSequence.cpp _compare)
+    // compare() is lexicographic (ordinal order)
     assert(Prss("(0,1,2)").compare(Prss("(0,1,3)")) == -1);
     assert(Prss("(0,1,3)").compare(Prss("(0,1,2)")) == 1);
     assert(Prss("(0,1,2)").compare(Prss("(0,1,2)")) == 0);

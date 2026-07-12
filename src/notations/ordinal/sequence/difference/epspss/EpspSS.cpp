@@ -11,8 +11,11 @@ Capabilities EpspSS::capabilities() const {
     Capabilities c;
     c.set(Op::FromString);
     c.set(Op::ToString);
+    c.set(Op::Normalize);
+    c.set(Op::Compare);
     c.set(Op::Expand);
     c.set(Op::ExpandTo);
+    c.set(Op::Successor);
     return c;
 }
 
@@ -28,44 +31,44 @@ BigInt EpspSS::rightmostLess_(BigInt an) const {
 //   m=0 -> (a_1..a_n - 1)                              [decrement last]
 //   append step s=1..M (m = s in the article's expandLen(A,m)):
 //     q = a_n - a_br
-//     q == 1            : append (s+n-L)th A            [case 2, no add]
-//     1 < q <= p        : append (n+s-1)th A + q       [case 3]
-//     q > p             : append (n+s-1)th A + p       [case 4, capped]
-// "(X th A)" is the X-th element of the ORIGINAL A (1-based), accessed
-// literally. The article does NOT define a wrap; an out-of-range index is
-// left as written and a defensive out_of_range is thrown (this is a guard,
-// not a reinterpretation of the formula).
+//     q == 1            : append (s+n-L)th running        [case 2, no add]
+//     1 < q <= p        : append (n+s-1)th running + (q-1)   [case 3]
+//     q > p             : append (n+s-1)th running + p   [case 4, capped]
+// "(X th expandLen(A,k))" is the X-th element (1-based) of the RUNNING,
+// growing sequence at stage k -- NOT the original A. The article defines no
+// wrap; an out-of-range index is left as written and a defensive out_of_range
+// is thrown (a guard, not a reinterpretation of the formula).
 EpspSS& EpspSS::expandLen_(BigInt M) {
     if (seq_.empty()) return *this;
-    if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1
-    if (seq_.back() == 0) return *this;                  // degenerate all-zero
-    if (M <= 0) {
-        if (seq_.back() > 0) seq_.back() -= 1;          // expandLen(A,0)
-        return *this;
-    }
+    if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1 => successor
     BigInt n = static_cast<BigInt>(seq_.size());
     BigInt an = seq_.back();
-    BigInt br1 = rightmostLess_(an);   // >=1 since a_1 = 0 < an
+    BigInt br1 = rightmostLess_(an);   // 1-based; 0 if none
+    if (br1 == 0)
+        throw std::out_of_range("EpspSS::expandLen_: no element < a_n (article undefined)");
+    if (M <= 0) {
+        if (an > 0) seq_.back() -= 1;                // expandLen(A,0)
+        return *this;
+    }
     BigInt L = n - br1;
-    std::vector<BigInt> A = seq_;                        // ORIGINAL A (before mutation)
-    BigInt q = an - A[static_cast<size_t>(br1 - 1)];  // a_br = A[br1-1]
+    BigInt q = an - seq_[static_cast<size_t>(br1 - 1)]; // a_n - a_br (original)
     seq_[static_cast<size_t>(n - 1)] = an - 1;         // expandLen(A,0): decrement last
     for (BigInt s = 1; s <= M; ++s) {
         BigInt pos1, add;
         if (q == 1) {                 // case 2
-            pos1 = s + n - L;         // (m+n-L)th A, m = s
+            pos1 = s + n - L;         // (m+n-L)th running, m = s
             add = 0;
         } else if (q <= p_) {         // case 3
-            pos1 = n + s - 1;         // (n+m-1)th A, m = s
-            add = q;
+            pos1 = n + s - 1;         // (n+m-1)th running, m = s
+            add = q - 1;
         } else {                       // case 4 (capped at p)
-            pos1 = n + s - 1;         // (n+m-1)th A, m = s
+            pos1 = n + s - 1;         // (n+m-1)th running, m = s
             add = p_;
         }
-        if (pos1 < 1 || pos1 > n)
+        if (pos1 < 1 || pos1 > static_cast<BigInt>(seq_.size()))
             throw std::out_of_range("EpspSS::expandLen_: article index ("
-                + std::to_string(pos1) + " th A) is out of range for the current sequence");
-        seq_.push_back(A[static_cast<size_t>(pos1 - 1)] + add);
+                + std::to_string(pos1) + " th) out of range");
+        seq_.push_back(seq_[static_cast<size_t>(pos1 - 1)] + add);
     }
     return *this;
 }
@@ -100,10 +103,12 @@ std::string EpspSS::to_string() const {
 
 EpspSS& EpspSS::expand(BigInt m) {
     if (seq_.empty()) return *this;
-    if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1
+    if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1 => successor
     BigInt n = static_cast<BigInt>(seq_.size());
     BigInt an = seq_.back();
     BigInt br1 = rightmostLess_(an);
+    if (br1 == 0)
+        throw std::out_of_range("EpspSS::expand: no element < a_n (article undefined)");
     BigInt L = n - br1;
     if (m == 0) {
         if (an > 0) seq_[static_cast<size_t>(n - 1)] = an - 1; // expand(A,0)
@@ -117,6 +122,29 @@ EpspSS& EpspSS::expand(BigInt m) {
 // elements per the article's case rules.
 EpspSS& EpspSS::expand_to(BigInt len) {
     return expandLen_(len);
+}
+
+EpspSS EpspSS::operator[](BigInt n) const {
+    EpspSS tmp = *this;   // A[n] must NOT mutate *this
+    tmp.expand(n);
+    return tmp;
+}
+
+// Lexicographic ordinal comparison, valid when both operands are in standard
+// form (user-specified property, consistent with Prss). Cross-type arguments
+// throw NotComparable.
+int EpspSS::compare(const Notation& other) const {
+    const EpspSS* o = dynamic_cast<const EpspSS*>(&other);
+    if (!o) throw NotComparable(name());
+    size_t n1 = seq_.size(), n2 = o->seq_.size();
+    size_t m = std::min(n1, n2);
+    for (size_t i = 0; i < m; ++i) {
+        if (seq_[i] > o->seq_[i]) return 1;
+        if (seq_[i] < o->seq_[i]) return -1;
+    }
+    if (n1 > n2) return 1;
+    if (n1 < n2) return -1;
+    return 0;
 }
 
 std::istream& operator>>(std::istream& is, EpspSS& p) {

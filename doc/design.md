@@ -73,7 +73,7 @@ queries like "list all ordinal/sequence/marked_parent notations" without relying
 ## 4. 能力位模型 / Capability model
 
 ```cpp
-enum class Op { Parse, Serialize, Normalize, Compare, Expand, ExpandTo, Successor };
+enum class Op { FromString, ToString, Normalize, Compare, Expand, ExpandTo, Successor };
 class Capabilities { void set(Op); bool has(Op) const; };
 ```
 
@@ -82,16 +82,50 @@ class Capabilities { void set(Op); bool has(Op) const; };
 Each notation overrides `capabilities()`. The base supplies default (throwing) implementations, so
 a partial notation is still a valid `Notation` and the interface is complete.
 
+> **`normalize()` / `isSuccessor()` 是 `OrdinalNotation` 基类（继承 `Notation`）里的 NON-VIRTUAL 函数 / non-virtual functions in `OrdinalNotation` (which derives from `Notation`).**
+> 标准型的**定义**对所有序数记号通用，而序数**序列**记号的**算法**也完全相同——
+> 唯一差异是极限表达式的首项 `baseVal_`（PrSS=0，ε_pSS/ε_ωSS=1）。因此二者只写
+> 一份（序数基类里的非虚函数），由各记号在构造时设定 `baseVal_`；不再三处复制。
+> The standard-form *definition* is universal, and — for the ordinal **sequence** notations — the
+> *algorithm* is byte-identical too; the only per-notation input is the limit expression's first
+> element `baseVal_` (PrSS=0, ε_pSS/ε_ωSS=1). So both live as ONE non-virtual function in
+> `OrdinalNotation` (parameterized by `baseVal_`, set per notation in its constructor) — no 3-way duplication.
+
+## 3b. 类层级 / Class hierarchy
+
+```
+Notation                 (generic root — all notations)
+├─ OrdinalNotation : Notation        (base of ALL ordinal notations)
+│   ├─ prss / eps_p_ss / eps_omega_ss   (ordinal SEQUENCE; carry seq_ + standard-form)
+│   └─ (future) cnf / veblen / buchholz / taranovsky / ...
+└─ Knuth / Conway : Notation         (large-number; root directly, no seq_ / no std-form)
+```
+
+`OrdinalNotation` 承载所有序数记号共有的标准型检测（`normalize()` / `isSuccessor()`，非虚共享实现，仅以 `baseVal_` 区分）；大数记号直接继承 `Notation`，不携带 `seq_`、也不进入标准型逻辑。
+`OrdinalNotation` carries the standard-form detection shared by every ordinal notation (`normalize()` / `isSuccessor()`, non-virtual, distinguished only by `baseVal_`); large-number notations derive straight from `Notation` and never see `seq_` or standard-form logic。
+
+> **`core/Ordinal` 与 `WeakVeblen` 的层级说明 / hierarchy note.**
+> `core/Ordinal` 是一个**独立的 value type**（序数表达式树），**不是** `Notation`
+> 的子类——它是支撑层，被 WeakVeblen 等"非封闭序数记号"持有。
+> `omega/Ordinal` is a **separate value type** (ordinal expression tree), **not** a
+> subclass of `Notation`; it is a foundation layer held *by* notations like WeakVeblen.
+> `ordinal/veblen/weakveblen` 直承 `Notation`（**不**经 `OrdinalNotation`，因
+> 非自然数序列、文章无标准型 / see spec `weak_veblen_like.md` C4），其内部的
+> 序数算术经 `core/Ordinal` 完成。`weak_veblen` derives straight from `Notation`
+> (not `OrdinalNotation`; see spec `weak_veblen_like.md` C4) and delegates its
+> ordinal arithmetic to `core/Ordinal`.
+
 ## 5. 运算语义 / Operation semantics (per family)
 
-- **Parse / Serialize** — 字符串 ↔ 内部形式 / string <-> internal form.
-- **Normalize** — 规范 / 标准形式（序数：标准型；大数：化简）/ canonical / standard form.
+- **FromString / ToString** — 字符串 ↔ 内部形式 / string <-> internal form.
 - **Compare** — 序数 → 序数序；大数 → **抛 `NotComparable`** / ordinal → ordinal order;
   number → **throws `NotComparable`**.
 - **Expand(n)** — 序数 → 基础序列第 n 项 α[n]；大数 → 一次重写步，应用 n 次 / ordinal → nth
   fundamental term α[n]; number → one rewrite step, n times.
 - **ExpandTo(len)** — 展开到目标规模 / 长度（数组记号用）/ expand to a target size / length.
-- **Successor** — 主要用于序数 / mainly ordinal.
+
+（`normalize()` / `isSuccessor()` 是 `OrdinalNotation` 基类（继承 `Notation`）里的非虚函数，所有序数序列记号共用同一份实现，仅由 `baseVal_` 区分。）
+
 
 所有运算均**不产生数值**：`expand` / `reduce` 返回记号自身（仍是未求值的符号对象），需要 LaTeX 时再调用 `to_string()`。
 None of these operations produce a numeric value: `expand` / `reduce` return the notation object
@@ -108,10 +142,27 @@ cross-family bridge is provided (the former `ToOrdinal` is removed).
 已实现（真实、可审计）/ Implemented (real, auditable):
 - `number/knuth` — Knuth up-arrow (高德纳箭头)
 - `number/conway` — Conway chained arrow (康威链式箭头)
+- `ordinal/sequence/difference/prss` — PrSS (阶差型, 继承 `OrdinalNotation`)
+- `ordinal/sequence/difference/epspss` — ε_pSS (继承 `OrdinalNotation`)
+- `ordinal/sequence/difference/epsilonomegass` — ε_ωSS (继承 `OrdinalNotation`)
+- `core/Ordinal` — **统一序数表达式层 / unified ordinal expression layer**
+  （value type，非 Notation）。对应 `study/notations/Ordinal.md`：变体
+  `Zero/Omega/Succ/Add/Mul/Pow/WV/Cnf`；`expand` 重写表达式树；
+  Cantor 正规形（CNF）仅用于闭序数的比较/前驱/左减；含 C2（\(\omega\) 的
+  FS=\(n\)）、C3（分量算术走 CNF，WV 分量不可化归则抛错）约定。
+- `ordinal/veblen/weakveblen` — **WeakVeblen (zahin 类弱 Veblen 记号)**
+  对应 `study/notations/weak-Veblen-like notation.md`：6 个 case 的 `expand`
+  **逐字**实现，序数算术由 `core/Ordinal` 支撑。⚠ **直承 `Notation`**
+  （C4），**不**继承 `OrdinalNotation`：它不是自然数序列记号、文章
+  **未给标准型 / `compare` 算法**，故只暴露 FromString/ToString/Expand。
 
-两者刻意**不**支持 `Compare`（大数记号比较未定义）。其余记号均为规划槽位。
-Both deliberately do **not** support `Compare` (large-number comparison undefined). All other
-notations above are future slots.
+大数记号（knuth/conway）刻意**不**支持 `Compare`；序数序列记号通过 `OrdinalNotation`
+继承 `normalize()` / `isSuccessor()` 与 `Compare`（`prss` 已实现 `compare`；`eps_p_ss` /
+`eps_omega_ss` 现亦按"标准型下字典序"实现 `compare`，跨类型抛 `NotComparable`）。
+Number notations deliberately do **not** support `Compare`; ordinal sequence notations get
+`normalize()` / `isSuccessor()` + `Compare` via `OrdinalNotation` (`prss` and the two ε
+variants implement `compare` as lexicographic order under standard form; cross-type throws
+`NotComparable`). Other notations are future slots.
 
 > 代码对齐说明 / Code-alignment note: 已移除 `evaluate()`，`expand` / `reduce` 返回记号自身的对象（非字符串、非数值），
 > 字符串转换仅由 `to_string()` / `string_to_it()` 负责。`evaluate()` has been removed; `expand` /
