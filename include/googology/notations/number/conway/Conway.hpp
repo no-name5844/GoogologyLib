@@ -45,6 +45,10 @@ public:
     std::string name() const override { return "conway"; }
     Family family() const override { return Family::Number; }
 
+    // 创造者 / creator: John Conway（康威链式箭头，1960s）。版本 1。
+    std::string creator() const override { return "John Conway"; }
+    std::string version() const override { return "1"; }
+
     // Supports FromString / ToString / Expand / ExpandTo. Compare is NOT
     // supported: large-number comparison is undefined.
     Capabilities capabilities() const override;

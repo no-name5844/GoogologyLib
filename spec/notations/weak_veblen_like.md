@@ -6,6 +6,8 @@
 - **Compare / 比较**: **已实现（逐字转录 §1.3 的 is_equal / is_greater / compare）**；见第 5 节 C4 / C5。
 - **Supported ops / 支持运算**: FromString, ToString, Expand
 - **Evaluate / 求值**: **not provided / 不提供**（一律不求值 / never evaluated）
+- **Creator / 创造者**: `zahin`（文章标题即 *zahin's weak-Veblen-like notation*；类名隐含此创造者前缀约定，见 `doc/design.md` §3c）。
+- **Version / 版本**: `1`（基础版本；文章未给显式版本号）。各分支小版本待计划模程写定后另给。
 
 > 本记号对应 `study/notations/weak-Veblen-like notation.md`，源码位于
 > `include/googology/notations/ordinal/veblen/weakveblen/`。

@@ -55,6 +55,20 @@ public:
     virtual std::string subfamily() const { return ""; }   // e.g. "sequence"
     virtual std::string style() const { return ""; }       // e.g. "difference" / "marked_parent"
 
+    // --- attribution & version (optional metadata) ---
+    // 创造者（命名者）/ creator: who introduced or named this notation.
+    // 约定（记住 / convention）: the creator's name is part of the CLASS
+    // name (prefixed), so each notation's class embeds its creator; the value
+    // returned here is that name. Override in the notation's OWN class.
+    // Default empty = unknown / to be annotated later.
+    // 默认空串表示未知，待日后在"计划模程"中标明。
+    virtual std::string creator() const { return ""; }
+    // 版本号 / version: a STRING or a group of numeric codes
+    // (e.g. "1", "2.3", "a17", "1.2.0"). Each notation / variant overrides
+    // it in its own class. Default empty.
+    // 可为字符串，也可是一串数字代码（默认空串）。
+    virtual std::string version() const { return ""; }
+
     // --- capability ---
     virtual Capabilities capabilities() const = 0;
     bool can(Op op) const { return capabilities().has(op); }

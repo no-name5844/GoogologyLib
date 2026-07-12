@@ -53,6 +53,10 @@ public:
     std::string name() const override { return "knuth"; }
     Family family() const override { return Family::Number; }
 
+    // 创造者 / creator: Donald Knuth（高德纳箭头，1976）。版本 1。
+    std::string creator() const override { return "Donald Knuth"; }
+    std::string version() const override { return "1"; }
+
     // Supports FromString / ToString / Expand / ExpandTo. Compare is NOT
     // supported: large-number comparison is undefined.
     Capabilities capabilities() const override;

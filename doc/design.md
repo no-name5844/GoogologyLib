@@ -115,6 +115,30 @@ Notation                 (generic root — all notations)
 > (not `OrdinalNotation`; see spec `weak_veblen_like.md` C4) and delegates its
 > ordinal arithmetic to `core/Ordinal`.
 
+## 3c. 元数据：创造者 / 版本 / Metadata: creator / version
+
+每个记号可携带两项**可选元数据**（不是运算，故不在能力位里）：
+Every notation may carry two **optional metadata** fields (not operations, so not in the capability bitset):
+
+- **`creator()`** — 创造者（命名者）/ the creator (who named/introduced it).
+  约定（记住 / convention）：**创造者的名字直接作为类名前缀的一部分**（类名即隐含创造者），
+  并在本方法中返回该名字。例如 `WeakVeblen` 的创造者元数据为 `"zahin"`
+  （文章标题即 *zahin's weak-Veblen-like notation*）。各类在自己的类里覆写此方法；
+  默认空串表示未知，待日后在"计划模程"中标明。
+  Convention: **the creator's name is part of the CLASS name (prefixed)**, and this
+  method returns that name. Each notation overrides it in its OWN class; default
+  empty = unknown, to be annotated later in the planning template.
+- **`version()`** — 版本号 / version. 可为**字符串或一串数字代码**
+  （如 `"1"`、`"2.3"`、`"a17"`、`"1.2.0"`）。各类在自己的类里覆写；
+  默认空串。每个记号及其各分支小版本各自持有自己的版本。
+  A **string or a group of numeric codes** (e.g. `"1"`, `"2.3"`, `"a17"`,
+  `"1.2.0"`). Each notation / variant overrides it in its own class; default empty.
+
+当前已填 / currently populated: `weak_veblen`→`creator="zahin", version="1"`；
+`knuth`→`creator="Donald Knuth", version="1"`；`conway`→`creator="John Conway", version="1"`。
+其余记号默认空串，待你在计划模程中写好后交来编写（含各分支小版本及其创造者/版本）。
+The rest default to empty until you supply them (with each variant's creator/version) via the planning template.
+
 ## 5. 运算语义 / Operation semantics (per family)
 
 - **FromString / ToString** — 字符串 ↔ 内部形式 / string <-> internal form.
@@ -183,3 +207,13 @@ Only `int64_t` is used for parse parameters and expansion indices (e.g. height c
 详见顶层 README。
 `master` holds language-neutral `spec/` and `tests/vectors/` (golden vectors). Each language branch
 implements the same logical skeleton. See the top-level README.
+
+> **中英双语文档分开存储 / Bilingual docs are stored SEPARATELY.**
+> 每个记号的 spec 用**后缀区分语言**的两个文件：`name.zh.md`（中文）与 `name.en.md`（英文），
+> 放在同一目录下（如 `spec/notations/ordinal/veblen/weakveblen/weak_veblen.zh.md`）。
+> **已有双语文件暂不迁移**（如 `spec/notations/weak_veblen_like.md` 仍保留双语）；
+> 新记号 / 新文档一律按 `name.zh.md` + `name.en.md` 分写。
+> Each notation's spec is TWO files distinguished by language suffix: `name.zh.md` (Chinese)
+> and `name.en.md` (English), in the same directory. **Existing bilingual files are NOT
+> migrated** (e.g. `weak_veblen_like.md` stays bilingual); new notations/docs always use
+> the split `name.zh.md` + `name.en.md`.

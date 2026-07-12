@@ -57,6 +57,12 @@ public:
     std::string subfamily() const override { return "veblen"; }
     std::string style() const override { return "weak-like"; }
 
+    // 创造者 / creator（命名者）: zahin —— 文章标题即 "zahin's weak-Veblen-like
+    // notation"，故本记号由 zahin 命名（类名已隐含此创造者前缀约定）。
+    // 版本 / version: 基础版本 1（文章未给显式版本号）。
+    std::string creator() const override { return "zahin"; }
+    std::string version() const override { return "1"; }
+
     Capabilities capabilities() const override;
 
     void string_to_it(const std::string& s) override;

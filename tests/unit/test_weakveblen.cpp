@@ -86,10 +86,21 @@ static void test_wv_compare() {
     CHECK(threw);
 }
 
+// --- creator() / version() metadata API (doc/design.md §3c) ---
+static void test_wv_metadata() {
+    WeakVeblen v;
+    CHECK_EQ(v.creator(), "zahin");
+    CHECK_EQ(v.version(), "1");
+    // metadata is independent of the parsed expression
+    CHECK_EQ(std::string(WeakVeblen("(1@0)").creator()), "zahin");
+    CHECK_EQ(std::string(WeakVeblen("(1@0)").version()), "1");
+}
+
 int main() {
     test_ordinal_core();
     test_wv_cases();
     test_wv_compare();
+    test_wv_metadata();
     if (failures == 0) std::cout << "test_weakveblen: all assertions passed\n";
     else std::cout << "test_weakveblen: " << failures << " FAILURE(S)\n";
     return failures == 0 ? 0 : 1;

@@ -70,6 +70,18 @@ int main() {
     printCapabilityMatrix();
     std::cout << "\n";
 
+    // creator() / version() metadata API (see doc/design.md §3c).
+    WeakVeblen wv_meta;
+    std::cout << "wv    creator = " << wv_meta.creator()
+              << "   version = " << wv_meta.version() << "\n";
+    Knuth k_meta;
+    std::cout << "knuth creator = " << k_meta.creator()
+              << "   version = " << k_meta.version() << "\n";
+    Conway c_meta;
+    std::cout << "conway creator= " << c_meta.creator()
+              << "   version = " << c_meta.version() << "\n";
+    std::cout << "\n";
+
     // Knuth demos (output is LaTeX; the library never computes a value).
     // expand()/reduce() return a Knuth object; to_string() renders the LaTeX.
     Knuth k1("2 ^ 3");
