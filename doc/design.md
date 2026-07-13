@@ -167,8 +167,8 @@ cross-family bridge is provided (the former `ToOrdinal` is removed).
 - `number/knuth` — Knuth up-arrow (高德纳箭头)
 - `number/conway` — Conway chained arrow (康威链式箭头)
 - `ordinal/sequence/difference/prss` — PrSS (阶差型, 继承 `OrdinalNotation`)
-- `ordinal/sequence/difference/epspss` — ε_pSS (继承 `OrdinalNotation`)
-- `ordinal/sequence/difference/epsilonomegass` — ε_ωSS (继承 `OrdinalNotation`)
+- `ordinal/sequence/difference/epsilon_ss` — ε_pSS + ε_ωSS **合并模块** (同一类型;
+  同源于 `study/notations/"epsilon_nSS & epsilon_omegaSS.md"`，均继承 `OrdinalNotation`)
 - `core/Ordinal` — **统一序数表达式层 / unified ordinal expression layer**
   （value type，非 Notation）。对应 `study/notations/Ordinal.md`：变体
   `Zero/Omega/Succ/Add/Mul/Pow/WV/Cnf`；`expand` 重写表达式树；
@@ -182,11 +182,11 @@ cross-family bridge is provided (the former `ToOrdinal` is removed).
   `compare`），故暴露 FromString/ToString/Expand/**Compare**。
 
 大数记号（knuth/conway）刻意**不**支持 `Compare`；序数序列记号通过 `OrdinalNotation`
-继承 `normalize()` / `isSuccessor()` 与 `Compare`（`prss` 已实现 `compare`；`eps_p_ss` /
-`eps_omega_ss` 现亦按"标准型下字典序"实现 `compare`，跨类型抛 `NotComparable`）。
+继承 `normalize()` / `isSuccessor()` 与 `Compare`（`prss` 已实现 `compare`；
+`epsilon_ss` 模块（ε_pSS + ε_ωSS 合并）现亦按"标准型下字典序"实现 `compare`，跨类型抛 `NotComparable`）。
 Number notations deliberately do **not** support `Compare`; ordinal sequence notations get
-`normalize()` / `isSuccessor()` + `Compare` via `OrdinalNotation` (`prss` and the two ε
-variants implement `compare` as lexicographic order under standard form; cross-type throws
+`normalize()` / `isSuccessor()` + `Compare` via `OrdinalNotation` (`prss` and the merged
+ε_pSS/ε_ωSS module implement `compare` as lexicographic order under standard form; cross-type throws
 `NotComparable`). Other notations are future slots.
 
 > 代码对齐说明 / Code-alignment note: 已移除 `evaluate()`，`expand` / `reduce` 返回记号自身的对象（非字符串、非数值），
@@ -217,3 +217,14 @@ implements the same logical skeleton. See the top-level README.
 > and `name.en.md` (English), in the same directory. **Existing bilingual files are NOT
 > migrated** (e.g. `weak_veblen_like.md` stays bilingual); new notations/docs always use
 > the split `name.zh.md` + `name.en.md`.
+
+> **同一类型记号写在同一模块 / Same-type notations live in ONE module.**
+> 判定规则（用户约定）：**源文章里写在同一个文件（或同一节）的记号 = 同一类型**，
+> 应在库里放进同一个模块（同一个头文件 + 同一个实现文件），spec 也合并为
+> `name.zh.md` + `name.en.md`。例：ε_pSS 与 ε_ωSS 同源于
+> `study/notations/"epsilon_nSS & epsilon_omegaSS.md"`，故已合并为 `epsilon_ss` 模块
+> （`include/.../epsilon_ss/EpsilonSS.hpp` 内含 `EpspSS` 与 `EpsOmegaSS` 两类的原样实现）。
+> Rule (user convention): notations that appear together in the SAME source article/file are
+> the SAME type and live in ONE module (one header + one .cpp); the merged spec is
+> `name.zh.md` + `name.en.md`. E.g. ε_pSS and ε_ωSS share the article
+> `"epsilon_nSS & epsilon_omegaSS.md"`, so they are merged into the `epsilon_ss` module.

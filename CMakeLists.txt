@@ -17,8 +17,7 @@ add_library(googology
   src/notations/number/knuth/Knuth.cpp
   src/notations/number/conway/Conway.cpp
   src/notations/ordinal/sequence/difference/prss/Prss.cpp
-  src/notations/ordinal/sequence/difference/epspss/EpspSS.cpp
-  src/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.cpp
+  src/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.cpp
   src/notations/ordinal/veblen/weakveblen/WeakVeblen.cpp
 )
 target_include_directories(googology PUBLIC include)

@@ -6,8 +6,7 @@
 #include "googology/notations/number/knuth/Knuth.hpp"
 #include "googology/notations/number/conway/Conway.hpp"
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
-#include "googology/notations/ordinal/sequence/difference/epspss/EpspSS.hpp"
-#include "googology/notations/ordinal/sequence/difference/epsilonomegass/EpsOmegaSS.hpp"
+#include "googology/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.hpp"
 #include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
 
 using namespace googology;
