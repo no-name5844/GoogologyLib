@@ -65,6 +65,11 @@ public:
     std::string subfamily() const override { return "sequence"; }
     std::string style() const override { return "difference"; }
 
+    // 创造者 / creator: zahin —— ε_pSS 由 zahin 命名（见 spec
+    // epsilon_ss.zh.md / .en.md 的 Creator 元数据）。版本 / version: 1（基础版本）。
+    std::string creator() const override { return "zahin"; }
+    std::string version() const override { return "1"; }
+
     Capabilities capabilities() const override;
 
     void string_to_it(const std::string& s) override;

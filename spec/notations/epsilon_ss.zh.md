@@ -37,6 +37,9 @@
 
 ## ε_pSS（ε_p Sequence System）
 
+- **Creator / 创造者**: `zahin`（ε_pSS 由 zahin 命名；见代码 `EpspSS::creator()`）。
+- **Version / 版本**: `1`（基础版本）。
+
 ### 定义 / Definition
 ε_pSS 是*阶差型*自然数**序列**记号。其极限表达式为 `(1, n)` —— 即每个合法序列以
 `1` 开头。对序列 `A = (a_1, …, a_n)` 唯一要求：

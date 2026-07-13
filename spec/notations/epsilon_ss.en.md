@@ -33,6 +33,9 @@
 
 ## ε_pSS (ε_p Sequence System)
 
+- **Creator**: `zahin` (ε_pSS is named by zahin; see `EpspSS::creator()` in code).
+- **Version**: `1` (base version).
+
 ### Definition
 ε_pSS is a *difference-type* natural-number **sequence** notation. Its limit
 expressions are of the form `(1, n)` — i.e. every valid sequence begins with `1`.
