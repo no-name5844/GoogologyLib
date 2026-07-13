@@ -1,6 +1,6 @@
 # ε_pSS / ε_ωSS — 逐公式演算跟踪 (Worked Examples)
 
-> 本文档**不是**规范说明，而是把 `epsilon_p_ss.md` / `epsilon_omega_ss.md` 中
+> 本文档**不是**规范说明，而是把 `epsilon_ss.zh.md` / `epsilon_ss.en.md` 中
 > 文章的 **expand 公式** 应用到具体输入、逐步手算的跟踪记录，用于核对
 > C++ 参考实现（以及未来 C / Java / Python / Lean4 移植）是否严格照文章执行。
 > 全部计算均按文章原文，无额外见解。
