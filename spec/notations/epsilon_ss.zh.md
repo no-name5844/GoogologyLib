@@ -91,6 +91,9 @@ expand(A,m)=
 
 ## ε_ωSS（ε_ω Sequence System）
 
+- **Creator / 创造者**: `zahin`（ε_ωSS 亦由 zahin 命名，与 ε_pSS 同出一篇源文章；见代码 `EpsOmegaSS::creator()`）。
+- **Version / 版本**: `1`（基础版本）。
+
 ### 定义 / Definition
 ε_ωSS 是*阶差型*自然数**序列**记号，是 ε_pSS 的 **ω-极限**（追加量无封顶）。
 - 族同 ε_pSS；**参数**：无（无 `p`、无 case 4）。

@@ -97,6 +97,9 @@ original `A`. No reinterpretation or unification is applied.
 
 ## ε_ωSS (ε_ω Sequence System)
 
+- **Creator**: `zahin` (ε_ωSS is also named by zahin — same source article as ε_pSS; see `EpsOmegaSS::creator()` in code).
+- **Version**: `1` (base version).
+
 ### Definition
 ε_ωSS is a *difference-type* natural-number **sequence** notation, the **ω-limit**
 of ε_pSS (no cap on the added amount).

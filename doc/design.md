@@ -136,8 +136,8 @@ Every notation may carry two **optional metadata** fields (not operations, so no
 
 当前已填 / currently populated: `weak_veblen`→`creator="zahin", version="1"`；
 `knuth`→`creator="Donald Knuth", version="1"`；`conway`→`creator="John Conway", version="1"`；
-`epsilon_ss` 模块中 `EpspSS`→`creator="zahin", version="1"`（ε_pSS 由 zahin 命名；
-`EpsOmegaSS` 创造者待定，仍默认空串）。
+`epsilon_ss` 模块中 `EpspSS`→`creator="zahin", version="1"`，`EpsOmegaSS`→`creator="zahin", version="1"`
+（ε_pSS 与 ε_ωSS 均由 zahin 命名，同出一篇源文章）。
 其余记号默认空串，待你在计划模程中写好后交来编写（含各分支小版本及其创造者/版本）。
 The rest default to empty until you supply them (with each variant's creator/version) via the planning template.
 
