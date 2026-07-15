@@ -39,6 +39,17 @@ symbolic form — never collapsed to a bare integer.
    The interface declares every operation; a capability bitset marks which are implemented;
    calling an unsupported op throws `UnsupportedOperation`.
 
+## 使用政策与免责声明 / Usage Policy & Disclaimer
+
+- **大数记号拒绝求值型运算**：Knuth ↑ / Conway → 等记号一旦发生"减一 / 取前驱 / 左减"
+  这类依赖先求出数值的运算，库**直接拒绝、不计算**（见 `doc/design.md` §10）。
+  Large-number notations **refuse** evaluation-style ops (minus-one / predecessor /
+  left-subtraction): the library refuses outright and **never computes** (see `doc/design.md` §10).
+- **仅供研究参考**：本库提供的展开 / 重写 / 比较**仅供研究参考**，不能在直接分析时
+  当作代替的计算器。For research reference only — not a substitute calculator.
+- **学习以定义为准**：研究学习应基于记号的数值含义与相关定义本身，不能单纯依靠本库。
+  Learn from definitions and related materials; do not rely on this library alone.
+
 ## 记号族 / Notation Families
 
 - `ordinal/` 序数记号 — `compare` 定义良好（序数序）。下设 `sequence/`（自然数序列记号）：

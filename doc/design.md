@@ -230,3 +230,34 @@ implements the same logical skeleton. See the top-level README.
 > the SAME type and live in ONE module (one header + one .cpp); the merged spec is
 > `name.zh.md` + `name.en.md`. E.g. ε_pSS and ε_ωSS share the article
 > `"epsilon_nSS & epsilon_omegaSS.md"`, so they are merged into the `epsilon_ss` module.
+
+## 10. 使用政策与免责声明 / Usage Policy & Disclaimer
+
+> **中文（政策）**
+> 1. **大数记号拒绝求值型运算 / Refuse evaluation-style ops on large-number notations.**
+>    对大数记号（如 Knuth ↑ / Conway →），一旦出现"减一"、"取前驱"、"左减"等
+>    **依赖先求出数值**的运算，库**直接拒绝，不计算**。这些数太大，减一 ≈ 把整个数
+>    算出来（见 §2 深层理由），在原则上不可行。接口中**不存在** `evaluate()` /
+>    减一 / 前驱等运算；若未来误加，必须以抛异常方式拒绝，绝不偷偷求值。
+> 2. **仅供研究参考，非取代计算器 / For research reference only, not a calculator.**
+>    本库提供的展开 / 重写 / 比较等运算**仅供研究参考**，不能在"直接分析"时
+>    **当作代替的计算器**使用。
+> 3. **学习以定义为准，不单纯依赖本库 / Learn from definitions, not the library alone.**
+>    研究学习应基于记号的**数值含义与相关定义**（记号定义、展开规则、标准型等）
+>    本身来进行；本库是辅助工具，**不能单纯依靠它**来获得理解或结论。
+
+> **English (policy)**
+> 1. **Large-number notations refuse evaluation-style ops.** Any op that *presupposes
+>    computing the value first* — subtract-one, predecessor, left-subtraction — on a
+>    large-number notation is **refused outright, never computed**. These numbers are
+>    so huge that "minus one" ≈ computing the whole value (see §2 rationale), which is
+>    infeasible in principle. Such ops (`evaluate()`, predecessor, etc.) **do not exist**
+>    in the interface; if ever mistakenly added, they must throw rather than silently
+>    evaluate.
+> 2. **Research reference only — not a substitute calculator.** The library's
+>    expansion / rewriting / comparison are **for research reference only**; they must
+>    not be used as a **substitute calculator** during direct analysis.
+> 3. **Learn from definitions, not the library alone.** Study should rest on the
+>    notation's **value meaning and related definitions** (its definition, expansion
+>    rule, standard form, …). The library is an aid — **never rely on it alone** for
+>    understanding or conclusions.

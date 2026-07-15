@@ -11,6 +11,12 @@ namespace googology {
 // NOTE: there is NO `Evaluate` capability. The library never computes a
 // numeric value for a notation; "how to compute" is provided by expand() /
 // expand_to() which return the notation's own symbolic (LaTeX) form.
+//
+// POLICY (see doc/design.md §10): large-number notations REFUSE evaluation-
+// style ops. Ops that presuppose computing the value first — SubtractOne /
+// Predecessor / LeftSubtraction (alpha - 1) — are INTENTIONALLY ABSENT.
+// For huge numbers these equal computing the whole value, which is infeasible.
+// If any such op is ever added, it MUST throw (never silently evaluate).
 enum class Op : uint8_t {
     FromString = 0,
     ToString = 1,
