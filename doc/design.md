@@ -261,3 +261,33 @@ implements the same logical skeleton. See the top-level README.
 >    notation's **value meaning and related definitions** (its definition, expansion
 >    rule, standard form, …). The library is an aid — **never rely on it alone** for
 >    understanding or conclusions.
+
+## 11. 跨记号依赖基本列的设计原则 / Cross-notation fundamental-sequence dependencies
+
+> **中文（原则）**
+> 若一个记号的展开 / 定义**需要依赖其他序数记号的基本列（fundamental
+> sequence）定义**，那么它在"被依赖的那一部分"应当**支持多种序数记号**，
+> 而不能写死成某一个具体记号。
+> - 例：某记号在某个分支要"取下方序数的基本列第 n 项"，而那个下方序数
+>   可能由不同记号（如 ε 系、Veblen、Buchholz 等）表示——这部分就应当
+>   对多种序数记号**多态 / 可插拔**，而非硬编码成单一记号。
+> - 实现落点：`expand` / 相关辅助应接受"被依赖记号的展开规则"作为参数或
+>   泛型约束，由调用方决定用哪一种；库内部共享的 `core/Ordinal` 表达式树
+>   （Zero/Omega/Succ/Add/Mul/Pow/WV/Cnf）正是为此类"统一序数表达"服务。
+> - 反之，若某记号的定义**不**依赖其他记号的基本列，则无需支持多种，
+>   只实现自身即可。
+
+> **English (principle)**
+> If a notation's expansion / definition **depends on the fundamental sequence
+> of other ordinal notations**, then the *dependent part* must **support multiple
+> ordinal notations**, not be hardwired to a single one.
+> - E.g. a notation whose some branch needs "the n-th term of the fundamental
+>   sequence of the ordinal below" — that below-ordinal may be expressed in
+>   different notations (ε-family, Veblen, Buchholz, …); that part should be
+>   **polymorphic / pluggable** across notations, not hardcoded to one.
+> - Implementation: `expand` / the relevant helper should take the *dependent
+>   notation's expansion rule* as a parameter or generic constraint, chosen by the
+>   caller. The shared `core/Ordinal` expression tree (Zero/Omega/Succ/Add/Mul/
+>   Pow/WV/Cnf) exists precisely to serve this "unified ordinal representation".
+> - Conversely, if a notation's definition does **not** depend on another's
+>   fundamental sequence, it need not support multiple — just implement itself.
