@@ -11,9 +11,18 @@ int main() {
     assert(Knuth("2 ^^ 3").to_string() == "2 \\uparrow^{2} 3");
     assert(Knuth("3 ^^ 2").to_string() == "3 \\uparrow^{2} 2");
 
+    // right-associative arrow tower is legal: 3^^3^^3 == 3 ↑↑ (3 ↑↑ 3)
+    assert(Knuth("3^^3^^3").to_string() == "3 \\uparrow^{2} (3 \\uparrow^{2} 3)");
+    // single-arrow tower: 3^3^3 == 3^(3^3)
+    assert(Knuth("3^3^3").to_string() == "3 \\uparrow (3 \\uparrow 3)");
+
     // expand()/reduce() return a Knuth object; to_string() gives its LaTeX form
     assert(Knuth("2 ^^ 3").expand(1).to_string() == "2 \\uparrow (2 \\uparrow^{2} 2)");
     assert(Knuth("2 ^^ 3").reduce().to_string() == "2 \\uparrow (2 \\uparrow 2)");
+
+    // expand() rewrites a tower term-by-term (recurses into the exponent)
+    assert(Knuth("3^^3^^3").expand(1).to_string()
+           == "3 \\uparrow^{2} (3 \\uparrow (3 \\uparrow^{2} 2))");
 
     // comparison is undefined -> must throw NotComparable
     bool threw = false;

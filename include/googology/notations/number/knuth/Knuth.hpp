@@ -41,6 +41,12 @@ class Knuth : public Notation {
 
     // One single rewrite step on the AST (never a string).
     static KNode step(const KNode& node);
+
+    // Recursive-descent parser (right-associative arrow towers).
+    //   expr := INT ( '^'+ expr )?
+    // so `a ^^ b ^^ c` parses as `a ↑^{2} (b ↑^{2} c)`.
+    // Throws std::invalid_argument on malformed input.
+    static KNode parseExpr_(const std::string& s);
     // Deep clone (KNode holds a unique_ptr so it is non-copyable).
     static KNode cloneNode(const KNode& node);
     // LaTeX (no numeric evaluation) of the AST.

@@ -66,6 +66,30 @@ KNode Knuth::step(const KNode& node) {
     return r;
 }
 
+// Recursive-descent parser for right-associative arrow towers.
+//   expr := INT ( '^'+ expr )?
+// `3^^3^^3` -> arrow(3, 2, arrow(3, 2, value(3)))  ==  3 ↑↑ (3 ↑↑ 3)
+// A bare integer (no '^') is a leaf. Any malformed tail throws.
+KNode Knuth::parseExpr_(const std::string& s) {
+    size_t pos = s.find('^');
+    if (pos == std::string::npos) {
+        // bare integer / leaf
+        if (s.empty()) throw std::invalid_argument("Knuth::string_to_it: empty operand");
+        BigInt v = std::stoll(s);
+        return KNode::value(v);
+    }
+    BigInt a = std::stoll(s.substr(0, pos));
+    size_t j = pos;
+    int c = 0;
+    while (j < s.size() && s[j] == '^') { ++c; ++j; }
+    if (c == 0) c = 1;                 // defencive: never 0 after finding '^'
+    std::string rest = s.substr(j);
+    if (rest.empty())
+        throw std::invalid_argument("Knuth::string_to_it: dangling arrows (no exponent)");
+    KNode exp = parseExpr_(rest);        // exponent is the whole RHS, parsed recursively
+    return KNode::arrow(a, c, std::move(exp));
+}
+
 void Knuth::string_to_it(const std::string& s) {
     std::string t = s;
     // accept the math symbol ↑ as well (UTF-8 string replace, no narrow-char literal)
@@ -73,21 +97,12 @@ void Knuth::string_to_it(const std::string& s) {
     for (size_t p = t.find(UP); p != std::string::npos; p = t.find(UP, p + 1))
         t.replace(p, UP.size(), "^");
     t.erase(std::remove_if(t.begin(), t.end(), ::isspace), t.end());
+    if (t.empty()) throw std::invalid_argument("Knuth::string_to_it: empty input");
 
-    size_t pos = t.find('^');
-    if (pos == std::string::npos) throw std::invalid_argument("Knuth::string_to_it: missing '^'");
-
-    BigInt a = std::stoll(t.substr(0, pos));
-    size_t i = pos;
-    int c = 0;
-    while (i < t.size() && t[i] == '^') { ++c; ++i; }
-    // height = number of consecutive '^' characters; a single '^' is ordinary
-    // exponentiation (c = 1) and the following number is the exponent.
-    if (c == 0) c = 1;
-    BigInt b = std::stoll(t.substr(i));
-
-    // store as the AST node  a ↑^c b
-    root_ = KNode::arrow(a, c, KNode::value(b));
+    // Recursive-descent: supports right-associative arrow towers
+    // (e.g. `3^^3^^3` == `3 ↑↑ (3 ↑↑ 3)`). The old single-shot scan
+    // silently dropped everything after the first exponent.
+    root_ = parseExpr_(t);
 }
 
 std::string Knuth::to_string() const { return tex(root_); }
