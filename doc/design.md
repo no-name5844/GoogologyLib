@@ -274,6 +274,9 @@ implements the same logical skeleton. See the top-level README.
 > - 实现落点：`expand` / 相关辅助应接受"被依赖记号的展开规则"作为参数或
 >   泛型约束，由调用方决定用哪一种；库内部共享的 `core/Ordinal` 表达式树
 >   （Zero/Omega/Succ/Add/Mul/Pow/WV/Cnf）正是为此类"统一序数表达"服务。
+> - **实例**：源文章 `study/notations/Ns.md` 的辅助函数 $f$（极限分支用
+>   `expand(α,2)`）与 $\mathbb{NS}$ 极限条款（用 `expand(α,i)`）即触发本原则；
+>   其 spec 见 `spec/notations/ns.zh.md` / `ns.en.md`（待实现）。
 > - 反之，若某记号的定义**不**依赖其他记号的基本列，则无需支持多种，
 >   只实现自身即可。
 
