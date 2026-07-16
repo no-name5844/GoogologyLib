@@ -92,11 +92,16 @@ expansion indices — never for numeric evaluation.
 **中文**
 - 浅克隆指定版本：`git clone --depth 1 --branch v0.1.0 https://github.com/no-name5844/GoogologyLib.git`
 - 或在 GitHub Releases 页下载该版本的源码压缩包（zip / tar.gz），解压即用。
+- **预编译库**：Windows x64 用户可直接用 `lib/windows-x64/` 下的 `libgoogology.a` /
+  `libgoogology.dll` / `libgoogology.dll.a` 链接，无需自行编译；其他平台请运行
+  `scripts/build_lib.sh` 自行构建（产物与平台 / 编译器强相关）。
 - 升级版本：仅改 tag 名（如 `v0.2.0`）重新浅克隆 / 重新下载即可。
 
 **English**
 - Shallow-clone a version: `git clone --depth 1 --branch v0.1.0 https://github.com/no-name5844/GoogologyLib.git`
 - Or download the source archive (zip / tar.gz) of that tag from GitHub Releases.
+- **Prebuilt libs**: Windows x64 users can link `lib/windows-x64/libgoogology.{a,dll,dll.a}`
+  directly; other platforms run `scripts/build_lib.sh` to build (artifacts are platform/compiler specific).
 - Upgrade: change the tag name and re-clone / re-download.
 
 ## 快速示例 / Quick example
