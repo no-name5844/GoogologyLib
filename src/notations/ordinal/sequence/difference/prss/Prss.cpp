@@ -88,6 +88,7 @@ std::string Prss::to_string() const {
 }
 
 Prss& Prss::expand(BigInt m) {
+    if (is_master_limit_) { *this = limit(m); return *this; }  // LIMIT.expand(m)=limit(m)
     if (seq_.empty()) return *this;
     if (seq_.back() == 0) { seq_.pop_back(); return *this; } // ends with 0 => successor
     BigInt n = static_cast<BigInt>(seq_.size());
@@ -119,6 +120,11 @@ Prss Prss::operator[](BigInt n) const {
 int Prss::compare(const Notation& other) const {
     const Prss* o = dynamic_cast<const Prss*>(&other);
     if (!o) throw NotComparable(name());
+    // master limit is the supremum of all Prss expressions
+    if (is_master_limit_ || o->is_master_limit_) {
+        if (is_master_limit_ && o->is_master_limit_) return 0;
+        return is_master_limit_ ? 1 : -1;
+    }
     size_t n1 = seq_.size(), n2 = o->seq_.size();
     size_t m = std::min(n1, n2);
     for (size_t i = 0; i < m; ++i) {
@@ -135,6 +141,20 @@ std::istream& operator>>(std::istream& is, Prss& p) {
     std::getline(is, s);
     if (!s.empty()) p.string_to_it(s);
     return is;
+}
+
+// §12 limit-expression API. limit(n) = (0,1,...,n-1); limit(0) = ().
+Prss Prss::limit(BigInt n) {
+    Prss r;
+    r.seq_.clear();
+    for (BigInt k = 0; k < n; ++k) r.seq_.push_back(k);
+    return r;
+}
+// The master limit expression LIMIT = (0,1,2,3,...) — marked object.
+Prss Prss::master_limit() {
+    Prss r;
+    r.is_master_limit_ = true;
+    return r;
 }
 
 } // namespace ordinal

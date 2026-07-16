@@ -14,7 +14,11 @@ namespace googology {
 //   * large-number notations -> represent integers/functions; comparison is
 //     generally UNDEFINED, so compare() throws NotComparable.
 //   * hierarchy notations -> bridge ordinal -> number (e.g. FGH/Hardy/SHG).
-enum class Family { Ordinal, Number, Hierarchy };
+//   * real_sequence notations -> an ordinal-indexed REAL sequence (e.g. Ns /
+//     n,m-Ns names x = α th NS, a real; it is NOT an ordinal notation and
+//     NOT a large-number notation). Carved out of `ordinal` on 2026-07-16
+//     per the user's directive.
+enum class Family { Ordinal, Number, Hierarchy, RealSequence };
 
 struct UnsupportedOperation : std::runtime_error {
     UnsupportedOperation(const std::string& n, Op op)

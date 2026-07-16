@@ -1,4 +1,4 @@
-#include "googology/notations/ordinal/ns/Ns.hpp"
+#include "googology/notations/real_sequence/ns/Ns.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -6,7 +6,7 @@
 #include <string>
 
 using namespace googology;
-using namespace googology::ordinal;
+using namespace googology::real_sequence;
 
 namespace {
 // Strip leading / trailing whitespace.

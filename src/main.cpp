@@ -8,17 +8,19 @@
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.hpp"
 #include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
-#include "googology/notations/ordinal/ns/Ns.hpp"
+#include "googology/notations/real_sequence/ns/Ns.hpp"
 
 using namespace googology;
 using namespace googology::number;
 using namespace googology::ordinal;
+using namespace googology::real_sequence;
 
 static const char* familyName(Family f) {
     switch (f) {
         case Family::Ordinal: return "ordinal";
         case Family::Number: return "number";
         case Family::Hierarchy: return "hierarchy";
+        case Family::RealSequence: return "real_sequence";
     }
     return "?";
 }

@@ -88,6 +88,6 @@ Per the project's §11 principle: this *dependent part* must **support multiple 
 ## 4. Implementation file list
 
 - `include/googology/core/Rational.hpp` — exact rational (gcd-reduced) + `WeightedFractionSum` (accumulated weight fraction: `int + w1/d1 + …`).
-- `include/googology/notations/ordinal/ns/Ns.hpp` + `src/notations/ordinal/ns/Ns.cpp` — the `Ns` class (parameters `n_`,`m_`; `Ns` = `(2,2)`); symbolic `to_string()` + accumulated weight-fraction views (`accumulated_weight_fractions()` / `to_fraction_string()`) + `core::Ordinal`-delegated `expand` / `compare`.
+- `include/googology/notations/real_sequence/ns/Ns.hpp` + `src/notations/real_sequence/ns/Ns.cpp` — the `Ns` class (parameters `n_`,`m_`; `Ns` = `(2,2)`); symbolic `to_string()` + accumulated weight-fraction views (`accumulated_weight_fractions()` / `to_fraction_string()`) + `core::Ordinal`-delegated `expand` / `compare`. NOTE: `Ns` belongs to `Family::RealSequence` (an ordinal-indexed real sequence), it is NOT an ordinal notation, hence the directory is `real_sequence/` not `ordinal/`.
 - `tests/unit/test_ns.cpp` — metadata, expression round-trip, accumulated weight-fraction values (incl. the `2 + 5/11 + 62/111` form), `expand`, `compare` assertions (all passing).
 - `src/main.cpp` — registers `ns` and demonstrates it.

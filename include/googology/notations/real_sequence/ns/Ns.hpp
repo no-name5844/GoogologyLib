@@ -7,7 +7,7 @@
 #include "googology/core/Rational.hpp"
 
 namespace googology {
-namespace ordinal {
+namespace real_sequence {
 
 // ===========================================================================
 // Ns / n,m-Ns — Nonlinear successo (by 送到本到 (UTF-8) & nnc)
@@ -48,7 +48,10 @@ public:
     bool isDefaultParams() const { return n_ == 2 && m_ == 2; }
 
     std::string name() const override { return "ns"; }
-    Family family() const override { return Family::Ordinal; }
+    // Ns is an ordinal-indexed REAL sequence (x = α th NS), NOT an ordinal
+    // notation and NOT a large-number notation. Carved out of `ordinal` on
+    // 2026-07-16 per the user's directive.
+    Family family() const override { return Family::RealSequence; }
     std::string subfamily() const override { return "ns"; }
     std::string style() const override { return "real_sequence"; }
 
@@ -84,5 +87,5 @@ public:
     std::string to_fraction_string() const;
 };
 
-} // namespace ordinal
+} // namespace real_sequence
 } // namespace googology

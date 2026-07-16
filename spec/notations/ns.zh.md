@@ -88,6 +88,6 @@ $$ f(\alpha) = \begin{cases}
 ## 4. 实现文件清单
 
 - `include/googology/core/Rational.hpp` — 精确有理数（gcd 约分）+ `WeightedFractionSum`（累加权重分数：`整数 + w₁/d₁ + …`）。
-- `include/googology/notations/ordinal/ns/Ns.hpp` + `src/notations/ordinal/ns/Ns.cpp` — `Ns` 类（`n_`,`m_` 双参数，`Ns` 为 `(2,2)`）；符号表达式 `to_string()` + 累加权重分数视图（`accumulated_weight_fractions()` / `to_fraction_string()`）+ 委托 `core::Ordinal` 的 `expand` / `compare`。
+- `include/googology/notations/real_sequence/ns/Ns.hpp` + `src/notations/real_sequence/ns/Ns.cpp` — `Ns` 类（`n_`,`m_` 双参数，`Ns` 为 `(2,2)`）；符号表达式 `to_string()` + 累加权重分数视图（`accumulated_weight_fractions()` / `to_fraction_string()`）+ 委托 `core::Ordinal` 的 `expand` / `compare`。注意：`Ns` 属于 `Family::RealSequence`（按序数索引的实数列），**不是**序数记号，故目录在 `real_sequence/` 而非 `ordinal/`。
 - `tests/unit/test_ns.cpp` — 元数据、表达式往返、累加权重分数值（含 `2 + 5/11 + 62/111` 形式）、`expand`、`compare` 断言（全部通过）。
 - `src/main.cpp` — 注册 `ns` 并演示。

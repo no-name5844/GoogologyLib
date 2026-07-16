@@ -29,5 +29,5 @@ Linux / macOS 用户请自行构建（库产物与平台、编译器强相关）
 
 ## 版本对应 / Version correspondence
 
-每个 `lib/` 快照对应一个 git tag（如 `v0.1.0`）。升级时取对应 tag 的库文件即可，
+每个 `lib/` 快照对应一个 git tag（如 `v0.1.1`）。升级时取对应 tag 的库文件即可，
 无需克隆整库历史。

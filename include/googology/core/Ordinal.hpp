@@ -359,9 +359,17 @@ inline Ordinal Ordinal::expand(long long n) const {
         case Kind::Mul:    // expand(alpha*beta, n) = alpha * expand(beta, n)
             if (b_->isZero()) return Ordinal::zero();
             return Ordinal::mul(*a_, b_->expand(n));
-        case Kind::Pow:    // expand(alpha^beta, n) = alpha^expand(beta, n)
+        case Kind::Pow: {  // expand(alpha^beta, n) = alpha^expand(beta, n)
             if (b_->isZero()) return Ordinal::one();
-            return Ordinal::pow(*a_, b_->expand(n));
+            Ordinal e = b_->expand(n);   // exponent of the FS term
+            // Canonicalize alpha^1 = alpha. Without this, e.g.
+            // (omega^omega)[1] = omega^1 came back as the inert Pow(omega,1)
+            // node: it compares EQUAL to omega but has NO fundamental
+            // sequence of its own, so a dedup-by-ordinal-equality BFS
+            // would skip the expandable omega node and miss omega[1]=1.
+            if (e.compare(Ordinal::one()) == 0) return *a_;
+            return Ordinal::pow(*a_, e);
+        }
         case Kind::WV:     // the 6 cases (study/notations/weak-Veblen-like notation.md)
             return expandWV(n);
     }

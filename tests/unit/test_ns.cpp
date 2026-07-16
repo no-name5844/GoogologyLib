@@ -1,4 +1,4 @@
-#include "googology/notations/ordinal/ns/Ns.hpp"
+#include "googology/notations/real_sequence/ns/Ns.hpp"
 #include "googology/core/Ordinal.hpp"
 #include "googology/notations/number/knuth/Knuth.hpp"
 #include <cassert>
@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 using namespace googology;
-using namespace googology::ordinal;
+using namespace googology::real_sequence;
 
 static int failures = 0;
 #define CHECK(cond) do { if (!(cond)) { std::cerr << "FAIL: " #cond " @ line " << __LINE__ << "\n"; ++failures; } } while (0)
@@ -18,7 +18,7 @@ static void test_metadata() {
     CHECK_EQ(std::string(x.creator()), "送到本到, nnc");
     CHECK_EQ(std::string(x.version()), "1");
     CHECK_EQ(std::string(x.name()), "ns");
-    CHECK(x.family() == Family::Ordinal);
+    CHECK(x.family() == Family::RealSequence);
     CHECK_EQ(std::string(x.subfamily()), "ns");
     // capabilities: FromString / ToString / Expand / Compare only
     CHECK(x.can(Op::FromString));

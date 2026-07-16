@@ -84,10 +84,33 @@ public:
     // copy), so repeated indexing A[1], A[2], ... is safe.
     EpspSS operator[](BigInt n) const;
 
+    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // The n-th term of ε_pSS's limit expression  LIMIT = (1, ω):
+    //   limit(0) = (),  limit(n) = (1,n)  for n > 0.
+    // LIMIT.expand(m) == limit(m);  is_standard() seeds the §12 BFS
+    // with LIMIT (via roots()).
+    static EpspSS limit(BigInt n);
+    // The master limit expression LIMIT itself (marked is_master_limit_).
+    static EpspSS master_limit();
+
     // Lexicographic ordinal comparison, valid when both operands are in
     // standard form (user-specified property, consistent with Prss).
-    // Cross-type arguments throw NotComparable.
+    // The master limit compares as the supremum. Cross-type arguments
+    // throw NotComparable.
     int compare(const Notation& other) const override;
+
+    // --- §12 standard-form decision support (OrdinalNotation member
+    // is_standard() runs the generic engine over *this's own
+    // compare()/expand()/roots()). ---
+    OrdinalNotation* clone() const override { return new EpspSS(*this); }
+    // Roots = the notation's master limit expression LIMIT = (1, ω).
+    // LIMIT.expand(m) == limit(m); it is the supremum of all standard
+    // ε_pSS expressions and seeds the downward §12 BFS.
+    std::vector<std::shared_ptr<OrdinalNotation>> roots() const override {
+        std::vector<std::shared_ptr<OrdinalNotation>> r;
+        r.push_back(std::shared_ptr<OrdinalNotation>(new EpspSS(master_limit())));
+        return r;
+    }
 
     friend std::istream& operator>>(std::istream& is, EpspSS& p);
 };
@@ -123,10 +146,33 @@ public:
     // denotes. Equivalent to expand(A, n). Does NOT mutate *this.
     EpsOmegaSS operator[](BigInt n) const;
 
+    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // The n-th term of ε_ωSS's limit expression  LIMIT = (1, ω):
+    //   limit(0) = (),  limit(n) = (1,n)  for n > 0.
+    // LIMIT.expand(m) == limit(m);  is_standard() seeds the §12 BFS
+    // with LIMIT (via roots()).
+    static EpsOmegaSS limit(BigInt n);
+    // The master limit expression LIMIT itself (marked is_master_limit_).
+    static EpsOmegaSS master_limit();
+
     // Lexicographic ordinal comparison, valid when both operands are in
     // standard form (user-specified property, consistent with Prss).
-    // Cross-type arguments throw NotComparable.
+    // The master limit compares as the supremum. Cross-type arguments
+    // throw NotComparable.
     int compare(const Notation& other) const override;
+
+    // --- §12 standard-form decision support (OrdinalNotation member
+    // is_standard() runs the generic engine over *this's own
+    // compare()/expand()/roots()). ---
+    OrdinalNotation* clone() const override { return new EpsOmegaSS(*this); }
+    // Roots = the notation's master limit expression LIMIT = (1, ω).
+    // LIMIT.expand(m) == limit(m); it is the supremum of all standard
+    // ε_ωSS expressions and seeds the downward §12 BFS.
+    std::vector<std::shared_ptr<OrdinalNotation>> roots() const override {
+        std::vector<std::shared_ptr<OrdinalNotation>> r;
+        r.push_back(std::shared_ptr<OrdinalNotation>(new EpsOmegaSS(master_limit())));
+        return r;
+    }
 
     friend std::istream& operator>>(std::istream& is, EpsOmegaSS& p);
 };

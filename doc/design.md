@@ -61,8 +61,10 @@ notations/
 │   ├─ knuth/     (高德纳箭头 / Knuth ↑)        <- 已实现 / implemented
 │   ├─ conway/    (康威链式箭头 / Conway →)      <- 已实现 / implemented
 │   └─ beaf/ hyper_e/ extensible_e/ bird/       (规划 / future)
-└─ hierarchy/                      (桥接 ordinal -> number)
-    └─ fgh/ hardy/ shg/            (规划 / future)
+├─ hierarchy/                      (桥接 ordinal -> number)
+│   └─ fgh/ hardy/ shg/            (规划 / future)
+└─ real_sequence/                 (按序数索引的实数列 / ordinal-indexed real sequence; 非序数记号、非大数记号)
+    └─ ns/   (Ns / n,m-Ns)        <- 已实现 / implemented
 ```
 
 每个记号暴露 `name()` / `family()` / `subfamily()` / `style()`，使注册表可不依赖目录布局回答
@@ -82,14 +84,15 @@ class Capabilities { void set(Op); bool has(Op) const; };
 Each notation overrides `capabilities()`. The base supplies default (throwing) implementations, so
 a partial notation is still a valid `Notation` and the interface is complete.
 
-> **`normalize()` / `isSuccessor()` 是 `OrdinalNotation` 基类（继承 `Notation`）里的 NON-VIRTUAL 函数 / non-virtual functions in `OrdinalNotation` (which derives from `Notation`).**
-> 标准型的**定义**对所有序数记号通用，而序数**序列**记号的**算法**也完全相同——
-> 唯一差异是极限表达式的首项 `baseVal_`（PrSS=0，ε_pSS/ε_ωSS=1）。因此二者只写
-> 一份（序数基类里的非虚函数），由各记号在构造时设定 `baseVal_`；不再三处复制。
-> The standard-form *definition* is universal, and — for the ordinal **sequence** notations — the
-> *algorithm* is byte-identical too; the only per-notation input is the limit expression's first
-> element `baseVal_` (PrSS=0, ε_pSS/ε_ωSS=1). So both live as ONE non-virtual function in
-> `OrdinalNotation` (parameterized by `baseVal_`, set per notation in its constructor) — no 3-way duplication.
+> **`normalize()` / `isSuccessor()` 是 `OrdinalNotation` 基类（继承 `Notation`）里的成员；`normalize()` 为 `virtual`（2026-07-16 改）。**
+> 【标准型=定义】是**统领(universal)**概念，对所有序数记号通用；【规范化=动作】则是
+> **逐记号(per-notation)**的——每个记号各自把自身表达式改写到那个统领定义。基类仅保留
+> 一份供**序数序列**记号复用的**共享默认体**（仅 `baseVal_` 不同：PrSS=0，ε_pSS/ε_ωSS=1），
+> 它并非"统领函数"。`isSuccessor()` 是**后继**判定（序列末项==`baseVal_`），与"标准型"无关，不改名。
+> The *definition* of standard form is universal; the *action* of normalizing is per-notation.
+> `normalize()` is `virtual`: the base class keeps only a shared default body (parameterized by
+> `baseVal_`) for the ordinal-sequence family — it is NOT an umbrella function. `isSuccessor()`
+> tests *successorship* (last term == `baseVal_`), unrelated to standard form, and is not renamed.
 
 ## 3b. 类层级 / Class hierarchy
 
@@ -294,3 +297,74 @@ implements the same logical skeleton. See the top-level README.
 >   Pow/WV/Cnf) exists precisely to serve this "unified ordinal representation".
 > - Conversely, if a notation's definition does **not** depend on another's
 >   fundamental sequence, it need not support multiple — just implement itself.
+
+## 12. 标准表达式的判定 / Deciding whether an expression is standard
+
+> **统领定义回顾 / Recap of the universal definition.** 一个表达式是【标准表达式】
+> ⇔ 它可以通过某个【极限表达式】，经【有限次展开（expand）】并【取基本列前若干项】
+> 的方式得到（见 `OrdinalNotation.hpp` 注释与 §4）。
+
+**作用域 / Scope.** 标准型的判定**本质上只针对序数记号**：它唯一依赖的 `cmp`（序数全序）与
+`fund_seq`（基本列）都是**序数记号**才有的结构。Knuth 上箭头、Conway 链、Ns（按序数索引的
+实数列）等没有序数序 / 基本列，§12 对它们不适用。本库将算法实现为**泛型引擎**
+（`core/StandardForm.hpp` 的模板 `StdSystem<Expr>`，只依赖 `cmp`+`fund_seq`+`clone`+`roots`），
+每个序数记号系统只需提供这四个接口即可套用。`core::Ordinal`（统一序数值类型，自带
+`compare` 与 `expand`＝基本列）是其中一个具体实例（`OrdinalSystem`）。**序数记号类
+`OrdinalNotation`** 再提供一层适配器（`OrdinalNotationSystem`），把自己的 `compare()`/`expand()`
+（即基本列）/`clone()`/`roots()` 接进引擎，并把判定暴露为**成员函数 `is_standard()`**——即
+本节算法"在单一记号系统内、只依赖该系统自带的 cmp + fund_seq"的落地（见该头文件与
+`tests/unit/test_standard_form.cpp`）。
+
+下面给出在一个**自洽记号系统**内、仅依赖系统自带的比较规则 `cmp` 与基本列规则
+`fund_seq` 的判定过程——**不借助任何外部语义**。
+
+**已知 / Given**
+- `cmp(X, Y)`：对全体标准表达式是全序，返回 `LESS` / `EQUAL` / `GREATER`。
+- `fund_seq(L, n)`：当 `L` 是极限记号时返回第 `n` 项 `L[n]`，且 `cmp(L[n], L) == LESS`。
+- 有限集 `Roots`：所有"最顶层"的极限记号；系统保证任何标准表达式都从某个
+  `R ∈ Roots` 出发、经有限次 `fund_seq` 展开得到。
+
+**算法一：带剪枝的广度优先搜索（自根向下）/ BFS-with-pruning (top-down)**
+1. 初始化：队列 `Q ←` 所有 `Roots` 元素；`visited ← ∅`（可选，避免重复展开）。
+2. 循环（`Q` 非空）：取队首 `X`；`c = cmp(X, E)`。
+   · `c == EQUAL` → 找到，`E` 是标准表达式，返回 `True`。
+   · `c == LESS` → `X` 已小于 `E`；后续展开严格下降，永不达 `E`，丢弃 `X`（剪枝）。
+   · `c == GREATER` → `X` 仍大于 `E`，仍可能展开后等于 `E`：
+      若 `X` 是极限记号，则生成候选直接后代加入 `Q`；否则丢弃。
+3. 候选直接后代的生成（可计算的关键）：不盲目枚举全体 `n`，而是利用
+   `cmp` 与基本列结构，只生成"有可能等于或大于 `E`"的 `X[n]`：
+   · 若 `fund_seq` 对 `n` 单调（通常如此），`X[n]` 随 `n` 增大而增大；用比较规则找出
+     最小 `n₀` 使 `cmp(X[n₀], E) != LESS`（即 `X[n₀] ≥ E`）与最大 `n₁` 使
+     `cmp(X[n₁], E) != GREATER`（即 `X[n₁] ≤ E`），候选索引仅落在有限区间
+     `n ∈ [n₀, n₁]`。对该区间内每个 `n` 计算 `Y = fund_seq(X, n)`，未访问则入队。
+   · 若基本列非数值索引而是结构驱动（如 `X = ω^α` 仅当 `α` 是极限时
+     `X[n] = ω^{α[n]}`），候选集由语法分析直接给出，索引继承自 `α` 的基本列，
+     同样可用本算法递归确定。
+   · 若无法构造有限候选索引集，则本判定在该系统上不可直接实现——系统须
+     提供更强的标准形条件或额外可计算结构。
+4. 终止：若 `Q` 变空，说明所有路径都掉到 `< E` 区域或无法展开，始终未遇等于 `E`
+   的表达式，返回 `False`。
+
+**为何终止？** 正向展开严格递减；一旦 `cmp(X,E)==LESS` 即永久不可逆，该分支
+深度有限；`cmp` 全序把空间分为 `>E` / `=E` / `<E` 三区，算法只在 `>E` 区向下探索，该区
+下降链有限（由系统所基于序数的良基性在记号上的投影保证），故搜索空间有穷。
+
+**算法二：向上回溯法（更实用的变体）/ Upward backtracking (practical variant)**
+1. 若 `E` 本身在 `Roots` 中，直接返回 `True`。
+2. 否则寻找极限记号 `L` 与索引 `n` 使 `fund_seq(L, n) == E`（按 `cmp` 判等）。
+3. 找到则递归判定 `L` 是否标准。
+4. 找不到任何 `L` 则 `E` 非标准。
+寻找 `L` 时同样用 `cmp` 压缩：必须 `cmp(L, E) == GREATER`，且由基本列结构反推
+可能形式，把搜索空间压到极小。两法本质相同：用 `cmp` 做边界、用基本列做桥梁，
+在 `>E` 的有限高度内完成全部搜索。
+
+> **与库 API 的关系 / Relationship to the library API.**
+> 这是"标准表达式判定"的概念骨架。本库**已**把 `is_standard()` 作为 **`OrdinalNotation`
+> （序数记号基类）的成员函数**暴露（用户 2026-07-16 纠正："标准型的判定基本上针对都是
+> 序数记号……它是属于序数记号这个类的一个成员函数"）。它在本记号系统内部、用本记号
+> 自带的 `compare()`（序数序）与 `expand()`（即基本列）跑泛型 §12 引擎（`OrdinalNotationSystem`
+> 适配器），不借任何外部语义——正是本节算法"单一系统、自带 cmp + fund_seq"的落地。
+> `core::Ordinal` 上的 `is_standard_bfs(Ordinal)` / `is_standard_backtrack(Ordinal)` 便捷重载仍保留，
+> 作为可独立使用的参考；本节同时作为各语言分支（C / Java / Python / Lean4）实现判定逻辑时的
+> **形式化参考**。标准型判定**只依赖 `cmp` + `fund_seq`**，正是 §11 要求基本列来源
+> 可插拔（pluggable）的同一理由——判定本身也是自洽系统内的事。

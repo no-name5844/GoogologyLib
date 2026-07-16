@@ -50,9 +50,33 @@ public:
     // denotes. Equivalent to expand(A, n). Does NOT mutate *this.
     Prss operator[](BigInt n) const;
 
+    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // The n-th term of Prss's limit expression  LIMIT = (0,1,2,3,...):
+    //   limit(0) = (),  limit(1) = (0),  limit(2) = (0,1),  ...,
+    //   limit(n) = (0,1,...,n-1).
+    // LIMIT.expand(m) == limit(m);  is_standard() seeds the §12 BFS
+    // with LIMIT (via roots()).
+    static Prss limit(BigInt n);
+    // The master limit expression LIMIT itself (marked is_master_limit_).
+    static Prss master_limit();
+
     // Lexicographic comparison (ordinal order over the sequence). Throws
-    // NotComparable for non-Prss arguments.
+    // NotComparable for non-Prss arguments. The master limit compares as
+    // the supremum (greater than every finite sequence).
     int compare(const Notation& other) const override;
+
+    // --- §12 standard-form decision support (OrdinalNotation member
+    // is_standard() runs the generic engine over *this's own
+    // compare()/expand()/roots()). ---
+    OrdinalNotation* clone() const override { return new Prss(*this); }
+    // Roots = the notation's master limit expression LIMIT = (0,1,2,...).
+    // LIMIT.expand(m) == limit(m); it is the supremum of all standard
+    // Prss expressions and seeds the downward §12 BFS.
+    std::vector<std::shared_ptr<OrdinalNotation>> roots() const override {
+        std::vector<std::shared_ptr<OrdinalNotation>> r;
+        r.push_back(std::shared_ptr<OrdinalNotation>(new Prss(master_limit())));
+        return r;
+    }
 
     friend std::istream& operator>>(std::istream& is, Prss& p);
 };

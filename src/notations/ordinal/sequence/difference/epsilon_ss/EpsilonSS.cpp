@@ -106,6 +106,7 @@ std::string EpspSS::to_string() const {
 }
 
 EpspSS& EpspSS::expand(BigInt m) {
+    if (is_master_limit_) { *this = limit(m); return *this; }  // LIMIT.expand(m)=limit(m)
     if (seq_.empty()) return *this;
     if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1 => successor
     BigInt n = static_cast<BigInt>(seq_.size());
@@ -140,6 +141,11 @@ EpspSS EpspSS::operator[](BigInt n) const {
 int EpspSS::compare(const Notation& other) const {
     const EpspSS* o = dynamic_cast<const EpspSS*>(&other);
     if (!o) throw NotComparable(name());
+    // master limit is the supremum of all ε_pSS expressions
+    if (is_master_limit_ || o->is_master_limit_) {
+        if (is_master_limit_ && o->is_master_limit_) return 0;
+        return is_master_limit_ ? 1 : -1;
+    }
     size_t n1 = seq_.size(), n2 = o->seq_.size();
     size_t m = std::min(n1, n2);
     for (size_t i = 0; i < m; ++i) {
@@ -156,6 +162,19 @@ std::istream& operator>>(std::istream& is, EpspSS& p) {
     std::getline(is, s);
     if (!s.empty()) p.string_to_it(s);
     return is;
+}
+
+// §12 limit-expression API. limit(0) = (); limit(n) = (1,n) for n > 0.
+EpspSS EpspSS::limit(BigInt n) {
+    EpspSS r;
+    if (n > 0) r.seq_ = {1, n};
+    return r;
+}
+// The master limit expression LIMIT = (1, ω) — marked object.
+EpspSS EpspSS::master_limit() {
+    EpspSS r;
+    r.is_master_limit_ = true;
+    return r;
 }
 
 // ===========================================================================
@@ -249,6 +268,7 @@ std::string EpsOmegaSS::to_string() const {
 }
 
 EpsOmegaSS& EpsOmegaSS::expand(BigInt m) {
+    if (is_master_limit_) { *this = limit(m); return *this; }  // LIMIT.expand(m)=limit(m)
     if (seq_.empty()) return *this;
     if (seq_.back() == 1) { seq_.pop_back(); return *this; } // ends with 1 => successor
     BigInt n = static_cast<BigInt>(seq_.size());
@@ -281,6 +301,11 @@ EpsOmegaSS EpsOmegaSS::operator[](BigInt n) const {
 int EpsOmegaSS::compare(const Notation& other) const {
     const EpsOmegaSS* o = dynamic_cast<const EpsOmegaSS*>(&other);
     if (!o) throw NotComparable(name());
+    // master limit is the supremum of all ε_ωSS expressions
+    if (is_master_limit_ || o->is_master_limit_) {
+        if (is_master_limit_ && o->is_master_limit_) return 0;
+        return is_master_limit_ ? 1 : -1;
+    }
     size_t n1 = seq_.size(), n2 = o->seq_.size();
     size_t m = std::min(n1, n2);
     for (size_t i = 0; i < m; ++i) {
@@ -297,6 +322,19 @@ std::istream& operator>>(std::istream& is, EpsOmegaSS& p) {
     std::getline(is, s);
     if (!s.empty()) p.string_to_it(s);
     return is;
+}
+
+// §12 limit-expression API. limit(0) = (); limit(n) = (1,n) for n > 0.
+EpsOmegaSS EpsOmegaSS::limit(BigInt n) {
+    EpsOmegaSS r;
+    if (n > 0) r.seq_ = {1, n};
+    return r;
+}
+// The master limit expression LIMIT = (1, ω) — marked object.
+EpsOmegaSS EpsOmegaSS::master_limit() {
+    EpsOmegaSS r;
+    r.is_master_limit_ = true;
+    return r;
 }
 
 } // namespace ordinal
