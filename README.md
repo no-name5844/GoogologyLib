@@ -9,6 +9,9 @@
 > (C / C++ / java / python / Lean4). `master` holds the language-neutral `spec/`
 > and golden `tests/vectors/`.
 
+> **当前版本 / Current version**: `v0.1.0` — 发布以 git tag 提供，见
+> [Releases](https://github.com/no-name5844/GoogologyLib/releases)。
+
 ---
 
 ## 简介 / Introduction
@@ -82,6 +85,20 @@ ctest --test-dir build
 Default integer type is `int64_t` (no external deps), used only for parse parameters and
 expansion indices — never for numeric evaluation.
 
+## 获取某一版本（无需克隆整库）/ Fetch a single version (no full clone)
+
+发布以 **git tag** 形式提供。使用者只需取某一个版本快照，无需克隆整个仓库历史：
+
+**中文**
+- 浅克隆指定版本：`git clone --depth 1 --branch v0.1.0 https://github.com/no-name5844/GoogologyLib.git`
+- 或在 GitHub Releases 页下载该版本的源码压缩包（zip / tar.gz），解压即用。
+- 升级版本：仅改 tag 名（如 `v0.2.0`）重新浅克隆 / 重新下载即可。
+
+**English**
+- Shallow-clone a version: `git clone --depth 1 --branch v0.1.0 https://github.com/no-name5844/GoogologyLib.git`
+- Or download the source archive (zip / tar.gz) of that tag from GitHub Releases.
+- Upgrade: change the tag name and re-clone / re-download.
+
 ## 快速示例 / Quick example
 
 ```cpp
@@ -94,8 +111,9 @@ std::cout << k.expand(1);     // one rewrite step -> "2 ^ (2 ^^ 2)"
 
 ## 文档状态 / Doc status
 
-> 本文件描述**目标设计**。下一步将把 C++ 代码对齐：移除 `evaluate()` 与能力位 `Evaluate`，
-> `expand` / `reduce` 返回符号化重写轨迹。
+> 本文件对应 **v0.1.0**（C++ 参考实现分支）。代码已对齐设计：记号一律不求值，`expand` /
+> `reduce` 返回符号化重写轨迹；能力位标出已实现运算。
 >
-> These docs describe the **target design**. Next step aligns the C++ code: remove `evaluate()`
-> and the `Evaluate` capability; `expand` / `reduce` return symbolic traces.
+> This document matches **v0.1.0** (the C++ reference branch). The code is aligned with the
+> design: notations are never evaluated; `expand` / `reduce` return symbolic traces; the
+> capability bitset marks which ops are implemented.
