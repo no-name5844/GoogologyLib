@@ -92,5 +92,5 @@
 `Normalize`/`Successor`，knuth / conway 不列）。
 
 > 注：`normalize()` / `isSuccessor()` / `operator[]` **不在本文档对应的文章内**，
-> 它们是项目自身的补充（通用标准型定义 + 你标定的极限表达式 `(1,n)`、
+> 它们是项目自身的补充（通用标准型定义 + 标定的极限表达式 `(1,n)`、
 > 文章后继条款、记号约定 `A[n]=expand(A,n)`），见各 spec 的"实现说明"小节。

@@ -19,6 +19,7 @@ add_library(googology
   src/notations/ordinal/sequence/difference/prss/Prss.cpp
   src/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.cpp
   src/notations/ordinal/veblen/weakveblen/WeakVeblen.cpp
+  src/notations/ordinal/ns/Ns.cpp
 )
 target_include_directories(googology PUBLIC include)
 
@@ -40,9 +41,13 @@ target_link_libraries(test_epspss PRIVATE googology)
 add_executable(test_weakveblen tests/unit/test_weakveblen.cpp)
 target_link_libraries(test_weakveblen PRIVATE googology)
 
+add_executable(test_ns tests/unit/test_ns.cpp)
+target_link_libraries(test_ns PRIVATE googology)
+
 enable_testing()
 add_test(NAME test_knuth COMMAND test_knuth)
 add_test(NAME test_conway COMMAND test_conway)
 add_test(NAME test_prss COMMAND test_prss)
 add_test(NAME test_epspss COMMAND test_epspss)
 add_test(NAME test_weakveblen COMMAND test_weakveblen)
+add_test(NAME test_ns COMMAND test_ns)

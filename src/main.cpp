@@ -8,6 +8,7 @@
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.hpp"
 #include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
+#include "googology/notations/ordinal/ns/Ns.hpp"
 
 using namespace googology;
 using namespace googology::number;
@@ -65,6 +66,7 @@ int main() {
     registry().add("epsilon_p_ss", [] { return std::make_unique<EpspSS>(); });
     registry().add("epsilon_omega_ss", [] { return std::make_unique<EpsOmegaSS>(); });
     registry().add("weak_veblen", [] { return std::make_unique<WeakVeblen>(); });
+    registry().add("ns", [] { return std::make_unique<Ns>(); });
 
     printCapabilityMatrix();
     std::cout << "\n";
@@ -174,6 +176,38 @@ int main() {
     std::cout << "wv compare((0@5),(100@0)) = " << ce.compare(cf) << "\n"; // +1 (i dominates)
     WeakVeblen cg("(1@0, 1@0)"), ch("(1@0)");
     std::cout << "wv compare((1@0,1@0),(1@0)) = " << cg.compare(ch) << "\n"; // +1 (prefix)
+
+    // Ns / n,m-Ns demos (by 送到本到 & nnc). The notation names the REAL
+    // x = α th NS, an element of an ordinal-indexed real sequence. The
+    // library keeps the expression symbolic (α th NS) and — per the user's
+    // "采用累加分数来表达" — exposes the value as an ACCUMULATED FRACTION
+    // of the step terms 1/f(β), exact only for FINITE α. Limit indices
+    // need a fundamental sequence and are NOT auto-computed.
+    Ns ns1("1 th NS");
+    std::cout << "ns  1 th NS        = " << ns1.to_string()
+              << "   value = " << ns1.value().to_string() << "\n";
+    Ns ns2("2 th NS");
+    std::cout << "ns  2 th NS        = " << ns2.to_string()
+              << "   value = " << ns2.value().to_string()
+              << "   (" << ns2.to_fraction_string() << ")\n";
+    Ns ns3("3 th NS");
+    std::cout << "ns  3 th NS        = " << ns3.to_string()
+              << "   value = " << ns3.value().to_string()
+              << "   (" << ns3.to_fraction_string() << ")\n";
+    // n,m-Ns with n=3, m=2: a_2 = 1/3, a_3 = 4/9
+    Ns nm(3, 2, "3 th NS");
+    std::cout << "n,m-Ns(3,2) 3 th NS = " << nm.to_string()
+              << "   value = " << nm.value().to_string()
+              << "   (" << nm.to_fraction_string() << ")\n";
+    // expand delegates to core::Ordinal (the §11 pluggable FS); for a
+    // limit index ω, expand(ω, k) = k th NS.
+    Ns nsl("ω th NS");
+    std::cout << "ns  ω th NS expand(2) = " << nsl.expand(2).to_string() << "\n";
+    // limit index value is NOT auto-computed (matches "不能自动计算").
+    try { (void)Ns("ω th NS").value(); }
+    catch (const std::domain_error&) {
+        std::cout << "ns  ω th NS value() -> (not auto-computed, by design)\n";
+    }
 
     // print() / operator<< both emit LaTeX (a fresh object, since expand/reduce mutate)
     Knuth k3("2 ^^ 3");
