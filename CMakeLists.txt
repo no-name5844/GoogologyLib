@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(GoogologyLib VERSION 0.1.1 CXX)
+project(GoogologyLib VERSION 0.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -49,6 +49,7 @@ target_link_libraries(test_ns PRIVATE googology)
 # scoped to ORDINAL notations; compiled straight from the test .cpp.
 add_executable(test_standard_form tests/unit/test_standard_form.cpp)
 target_include_directories(test_standard_form PRIVATE include)
+target_link_libraries(test_standard_form PRIVATE googology)
 
 enable_testing()
 add_test(NAME test_knuth COMMAND test_knuth)
