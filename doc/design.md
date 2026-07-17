@@ -307,7 +307,7 @@ implements the same logical skeleton. See the top-level README.
 **作用域 / Scope.** 标准型的判定**本质上只针对序数记号**：它唯一依赖的 `cmp`（序数全序）与
 `fund_seq`（基本列）都是**序数记号**才有的结构。Knuth 上箭头、Conway 链、Ns（按序数索引的
 实数列）等没有序数序 / 基本列，§12 对它们不适用。本库将算法实现为**泛型引擎**
-（`core/StandardForm.hpp` 的模板 `StdSystem<Expr>`，只依赖 `cmp`+`fund_seq`+`clone`+`roots`），
+（`core/OrdinalNotation.hpp` 的模板 `StdSystem<Expr>`，只依赖 `cmp`+`fund_seq`+`clone`+`roots`；该引擎已从独立的 `StandardForm.hpp` 合并进本头文件），
 每个序数记号系统只需提供这四个接口即可套用。`core::Ordinal`（统一序数值类型，自带
 `compare` 与 `expand`＝基本列）是其中一个具体实例（`OrdinalSystem`）。**序数记号类
 `OrdinalNotation`** 再提供一层适配器（`OrdinalNotationSystem`），把自己的 `compare()`/`expand()`

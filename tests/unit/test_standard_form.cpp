@@ -4,7 +4,7 @@
 #include <cassert>
 #include <iostream>
 #include <string>
-#include "googology/core/StandardForm.hpp"
+#include "googology/core/OrdinalNotation.hpp"
 #include "googology/core/Ordinal.hpp"
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.hpp"

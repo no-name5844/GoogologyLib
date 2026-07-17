@@ -4,7 +4,8 @@
 #include <vector>
 #include "googology/core/Notation.hpp"
 #include "googology/core/Capability.hpp"
-#include "googology/core/StandardForm.hpp"
+#include "googology/core/Ordinal.hpp"
+#include <stdexcept>
 
 namespace googology {
 
@@ -85,7 +86,7 @@ public:
     // class by design — the judgment is an ordinal-notation concept.
     // DECLARED VIRTUAL: the decision is PER-NOTATION. The ordinal
     // SEQUENCE notations (Prss / ε_pSS / ε_ωSS) use the generic
-    // expansion-reachability engine above; a matrix notation like BMS
+    // expansion-reachability engine defined in this header; a matrix notation like BMS
     // overrides it with its own direct syntactic check (§0.1 of its
     // article). Making it virtual keeps the "标准型判定属于序数记号
     // 这个类" principle uniform across all ordinal notations.
@@ -157,6 +158,179 @@ inline BigInt OrdinalNotation::expandUntilLarger_(std::vector<BigInt>& work,
         if (work[last] < target[last]) return -1;  // non-standard
     }
     return static_cast<BigInt>(work.size()) - origLen;
+}
+
+// ===========================================================================
+// §12 standard-form (标准表达式) decision engine.
+// MERGED from the former standalone core/StandardForm.hpp into this header so
+// the ordinal-notation class carries its own judgment logic in one place
+// (project decision: no separate one-function-per-file module).
+//
+// Scoped to ORDINAL notations: it relies only on (a) a total ordinal order
+// `cmp` and (b) a fundamental-sequence rule `fundSeq`, both of which exist
+// ONLY for ordinal notations. Number notations (Knuth / Conway) and the real
+// sequence Ns have no ordinal order / fundamental sequence, so §12 does not
+// apply to them. The engine is templated on `Expr` (the expression type of
+// ONE notation system) and needs only cmp / fundSeq / clone / roots.
+// Two dual strategies from §12: is_standard_bfs (downward BFS, cmp-pruned)
+// and is_standard_backtrack (upward). The library ships one concrete
+// instantiation over the unified ordinal VALUE type `core::Ordinal`
+// (class OrdinalSystem, used by the free is_standard_bfs(Ordinal) /
+// is_standard_backtrack(Ordinal) convenience overloads). The ordinal
+// notation class provides its OWN instantiation via an adapter
+// (OrdinalNotationSystem) over its compare()/expand()/clone()/roots() and
+// exposes the decision as the member function is_standard().
+// ===========================================================================
+template <class Expr>
+struct StdSystem {
+    virtual ~StdSystem() = default;
+    virtual int                       cmp(const Expr& a, const Expr& b) const = 0;
+    virtual Expr                      fundSeq(const Expr& a, long long n) const = 0;
+    virtual Expr                      clone(const Expr& a) const = 0;
+    virtual std::vector<Expr>        roots() const = 0;
+};
+
+namespace detail {
+// does `x` have a fundamental sequence? (a limit does; 0 / a successor /
+// a closed CNF ordinal do not — they throw on expand).
+template <class Expr>
+inline bool has_fs(const StdSystem<Expr>& s, const Expr& x) {
+    try { (void)s.fundSeq(s.clone(x), 1); return true; }
+    catch (...) { return false; }
+}
+template <class Expr>
+inline Expr fs(const StdSystem<Expr>& s, const Expr& x, long long n) {
+    return s.fundSeq(s.clone(x), n);
+}
+
+// Find the finite candidate-index band [n0, n1] for a MONOTONIC fund_seq
+// (design.md §12.3). Returns false when no bounded band exists.
+template <class Expr>
+inline bool band(const StdSystem<Expr>& s, const Expr& X, const Expr& target,
+                long long maxProbe, long long& n0, long long& n1) {
+    Expr f1 = fs(s, X, 1);
+    int c1 = s.cmp(f1, target);
+    if (c1 > 0) { n0 = 1; n1 = 0; return false; }
+    long long hi = 1;
+    for (;;) {
+        Expr h = fs(s, X, hi);
+        if (s.cmp(h, target) >= 0) break;
+        if (hi >= maxProbe) { hi = maxProbe; break; }
+        hi *= 2;
+        if (hi > maxProbe) hi = maxProbe;
+    }
+    Expr hF = fs(s, X, hi);
+    if (hi >= maxProbe && s.cmp(hF, target) < 0) { n0 = maxProbe + 1; n1 = 0; return false; }
+    long long a = 1, b = hi;
+    while (a < b) {
+        long long m = a + (b - a) / 2;
+        if (s.cmp(fs(s, X, m), target) >= 0) b = m; else a = m + 1;
+    }
+    n0 = a;
+    a = n0; b = hi;
+    while (a < b) {
+        long long m = a + (b - a + 1) / 2;
+        if (s.cmp(fs(s, X, m), target) <= 0) a = m; else b = m - 1;
+    }
+    n1 = a;
+    return n0 <= n1;
+}
+} // namespace detail
+
+// §12.1 — downward BFS with cmp-based pruning.
+template <class Expr>
+inline bool is_standard_bfs(const StdSystem<Expr>& sys, const Expr& target,
+                            long long maxProbe = (1LL << 18)) {
+    using namespace detail;
+    std::vector<Expr> Q;
+    for (auto& r : sys.roots()) Q.push_back(sys.clone(r));
+    std::vector<Expr> visited;
+    auto seen = [&](const Expr& x) -> bool {
+        for (auto& v : visited) if (sys.cmp(v, x) == 0) return true;
+        return false;
+    };
+    while (!Q.empty()) {
+        Expr X = Q.back(); Q.pop_back();
+        if (seen(X)) continue;
+        visited.push_back(sys.clone(X));
+        int c = sys.cmp(X, target);
+        if (c == 0) return true;
+        if (c < 0) continue;
+        if (!has_fs(sys, X)) continue;
+        long long n0 = 0, n1 = 0;
+        if (!band(sys, X, target, maxProbe, n0, n1)) {
+            if (sys.cmp(fs(sys, X, 1), target) > 0) {
+                Expr Y = fs(sys, X, 1);
+                if (!seen(Y)) Q.push_back(std::move(Y));
+            }
+            continue;
+        }
+        for (long long n = n0; n <= n1; ++n) {
+            Expr Y = fs(sys, X, n);
+            if (!seen(Y)) Q.push_back(std::move(Y));
+        }
+    }
+    return false;
+}
+
+// §12.2 — dual decision procedure (single descent search).
+template <class Expr>
+inline bool is_standard_backtrack(const StdSystem<Expr>& sys, const Expr& target) {
+    using namespace detail;
+    std::vector<Expr> Q;
+    for (auto& r : sys.roots()) Q.push_back(sys.clone(r));
+    std::vector<Expr> visited;
+    auto seen = [&](const Expr& x) -> bool {
+        for (auto& v : visited) if (sys.cmp(v, x) == 0) return true;
+        return false;
+    };
+    while (!Q.empty()) {
+        Expr X = Q.back(); Q.pop_back();
+        if (seen(X)) continue;
+        visited.push_back(sys.clone(X));
+        int c = sys.cmp(X, target);
+        if (c == 0) return true;
+        if (c < 0) continue;
+        if (!has_fs(sys, X)) continue;
+        long long n0 = 0, n1 = 0;
+        if (!band(sys, X, target, (1LL << 18), n0, n1)) {
+            if (sys.cmp(fs(sys, X, 1), target) > 0) {
+                Expr Y = fs(sys, X, 1);
+                if (sys.cmp(Y, target) == 0) return true;
+                if (!seen(Y)) Q.push_back(std::move(Y));
+            }
+            continue;
+        }
+        for (long long n = n0; n <= n1; ++n) {
+            Expr Y = fs(sys, X, n);
+            if (sys.cmp(Y, target) == 0) return true;
+            if (!seen(Y)) Q.push_back(std::move(Y));
+        }
+    }
+    return false;
+}
+
+// Concrete ordinal system: core::Ordinal as the §12 system.
+// Roots = {0, ω, ω^ω}. Under the article's fundamental sequences
+// (ω[n] = n, (ω^ω)[n] = ω^n) the reachable standard ordinals are
+//   {0, 1, 2, ..., ω, ω^2, ω^3, ..., ω^ω}.
+class OrdinalSystem : public StdSystem<Ordinal> {
+public:
+    int                 cmp(const Ordinal& a, const Ordinal& b) const override { return a.compare(b); }
+    Ordinal            fundSeq(const Ordinal& a, long long n) const override { return a.expand(n); }
+    Ordinal            clone(const Ordinal& a) const override { return a; }
+    std::vector<Ordinal> roots() const override {
+        return { Ordinal::zero(),
+                 Ordinal::omega(),
+                 Ordinal::pow(Ordinal::omega(), Ordinal::omega()) };
+    }
+};
+
+inline bool is_standard_bfs(const Ordinal& target) {
+    OrdinalSystem sys; return is_standard_bfs<Ordinal>(sys, target);
+}
+inline bool is_standard_backtrack(const Ordinal& target) {
+    OrdinalSystem sys; return is_standard_backtrack<Ordinal>(sys, target);
 }
 
 // ---------------------------------------------------------------------------
