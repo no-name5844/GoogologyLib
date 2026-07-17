@@ -17,11 +17,11 @@ BigInt BMS::get_(int x, int y) const {
 }
 
 // ---------------------------------------------------------------------------
-// §0.1 标准型三条件（直接句法判定）
+// §0.1 合法矩阵三条件（直接句法判定；合法 ≠ 标准型）
 // ---------------------------------------------------------------------------
-bool BMS::satisfiesStandardForm_() const {
+bool BMS::isLegal_() const {
     int X = numCols_();
-    if (X == 0) return true;                       // 空矩阵视为标准
+    if (X == 0) return true;                       // 空矩阵视为合法
     // 1) 首列全 0
     int h0 = colHeight_(0);
     for (int y = 0; y < h0; ++y)
@@ -128,9 +128,47 @@ void BMS::expandToFS_(BigInt n) {
 }
 
 BMS& BMS::expand(BigInt n) {
+    if (is_master_limit_) {                       // master_limit().expand(m) == limit(m)
+        auto lm = limit(n);
+        cols_.clear();
+        const BMS* src = lm.get();
+        for (int x = 0; x < src->numCols_(); ++x) {
+            std::vector<BigInt> col;
+            for (int y = 0; y < src->colHeight_(x); ++y)
+                col.push_back(src->get_(x, y));
+            cols_.push_back(col);
+        }
+        is_master_limit_ = false;
+        return *this;
+    }
     is_master_limit_ = false;
     expandToFS_(n);
     return *this;
+}
+
+// §0.3 极限表达式（所有 BMS 版本共用）：
+//   limit(0)=(), limit(1)=(0), limit(2)=(0)(1),
+//   limit(3)=(0)(1,1), ..., limit(n)=(0)(1,1,...,1) [n-1 个 1]
+// master_limit() = (0)(1,1,1,...)（第二列全 1，无限），标记为极限表达式。
+// 返回 shared_ptr<BMS>（动态类型恒为 BM4，极限表达式版本无关）。
+std::shared_ptr<BMS> BMS::limit(BigInt n) {
+    std::string s;
+    if (n <= 0) s = "";                              // limit(0) = ()
+    else {
+        s = "(0)";
+        if (n >= 2) {                                // 第二列：n-1 个 1
+            s += "(";
+            for (BigInt k = 0; k < n - 1; ++k) { if (k) s += ","; s += "1"; }
+            s += ")";
+        }
+    }
+    return std::make_shared<BM4>(s);
+}
+
+std::shared_ptr<BMS> BMS::master_limit() {
+    auto r = std::make_shared<BM4>();
+    r->is_master_limit_ = true;
+    return r;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,20 +243,22 @@ int BMS::compare(const Notation& other) const {
 }
 
 // ---------------------------------------------------------------------------
-// 规范化 / 标准型检测 / 后继
+// 规范化 / 合法性 / 后继
 // ---------------------------------------------------------------------------
 void BMS::normalize() {
     if (is_master_limit_) return;
-    if (satisfiesStandardForm_()) return;        // 已标准 -> 无操作
+    if (isLegal_()) return;                    // 已合法 -> 无操作
     // 不满足§0.1：按库惯例保持 *this 不变
 }
 
-bool BMS::is_standard() const { return satisfiesStandardForm_(); }
+// 当前以 §0.1 合法性替代标准型检测（必要非充分）。BMS 无法用 §12 引擎
+// 判定真标准型——compare 为句法序而非真序数序，Trans() 可能不终止。
+bool BMS::is_standard() const { return isLegal_(); }
 
 bool BMS::isSuccessor() const { return false; }   // 无简单后继概念
 
 std::vector<std::shared_ptr<OrdinalNotation>> BMS::roots() const {
-    // BMS 用 §0.1 直接判定（不依赖 §12 引擎），此处仅作纯虚满足：
+    // BMS 用 §0.1 合法性直接判定（不依赖 §12 引擎），此处仅作纯虚满足：
     // 返回与 *this 同动态类型的空矩阵种子。
     auto seed = std::shared_ptr<OrdinalNotation>(this->clone());
     static_cast<BMS*>(seed.get())->cols_.clear();
@@ -254,6 +294,7 @@ void BMS::string_to_it(const std::string& s) {
 }
 
 std::string BMS::to_string() const {
+    if (is_master_limit_) return "(0)(1,1,1,…)";   // 极限表达式（第二列全 1，无限）
     std::string out;
     for (size_t x = 0; x < cols_.size(); ++x) {
         out += '(';

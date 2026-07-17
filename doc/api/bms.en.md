@@ -57,7 +57,7 @@ BMS derives from `googology::ordinal::OrdinalNotation` (→ `Notation`), thus:
 - Owns: `name` / `family` / `subfamily` / `style` / `creator` / `version` / `capabilities` / `can` / `string_to_it` / `to_string` / `compare` (overridden) / `expand` (overridden) / `comparable` / `print` / `operator<<` / `reduce`.
 - Ordinal-notation members (virtual in `OrdinalNotation`, relevant ones overridden by BMS): `normalize` / `is_standard` / `isSuccessor` (non-virtual, BMS supplies its own) / `clone` / `roots`.
 
-> `is_standard()` is **`virtual`** (matches "standard-form judgment is per-notation"): BMS uses the §0.1 syntactic check directly; `OrdinalNotation`'s default §12 engine is overridden here.
+> `is_standard()` is **`virtual`** (matches "standard-form judgment is per-notation"): BMS currently substitutes the §0.1 legality check (necessary, not sufficient); `OrdinalNotation`'s default §12 engine is overridden here. BMS cannot use the §12 engine for true standard-form judgment because its `compare` is a syntax order, not a true ordinal order.
 
 ---
 
@@ -94,8 +94,8 @@ std::string to_string() const override;            // serialize back to same for
 BMS& expand(BigInt n) override;          // FS_n: in-place rewrite *this, return self (covariant)
 int  compare(const Notation& other) const override;  // syntax order; non-BMS arg throws NotComparable
 
-void normalize() override;                 // enforce §0.1; if unsatisfied, keep *this
-bool is_standard() const override;         // §0.1 three conditions (syntactic) directly
+void normalize() override;                 // enforce §0.1 legality; if unsatisfied, keep *this
+bool is_standard() const override;         // §0.1 legality (syntactic, necessary not sufficient)
 bool isSuccessor() const;                  // non-virtual: always false
 OrdinalNotation* clone() const override = 0;        // per subclass
 std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;  // same-type empty-matrix seed
@@ -119,11 +119,30 @@ int compare(const Notation& other) const override;  // column-major lexicographi
 - Same type (both some BMS subclass): compare column-major (column 0 row-by-row, then column 1, …) lexicographically; differing lengths resolved by present columns, out-of-bounds rows treated as $0$. Returns $-1/0/+1$.
 - **Cross-type** (argument is not a `BMS` subclass): throws `NotComparable` (`compare` is not the real ordinal order; library never compares across families).
 
-### 5.5 Standard form / normalization
+### 5.5 Legality / standard form / normalization
 
-- `is_standard()`: **syntactic** §0.1 three-condition check (first col all 0 / each col non-increasing / same row advances ≤1), independent of expansion or termination.
-- `normalize()`: if §0.1 already holds, no-op; if not (invalid matrix), per library convention **leaves `*this` unchanged** (no throw, no collapse).
+- `is_standard()`: currently **substitutes** the §0.1 **legality** check (first col all 0 / each col non-increasing / same row advances ≤1) for standard-form judgment — this is a **necessary, not sufficient** condition. BMS cannot use the §12 engine for true standard-form judgment because its `compare` is a syntax order, not a true ordinal order, and `Trans()` may not terminate.
+- `normalize()`: if §0.1 legality already holds, no-op; if not (invalid matrix), per library convention **leaves `*this` unchanged** (no throw, no collapse).
 - `isSuccessor()`: always `false` (BMS has no simple-successor notion).
+
+### 5.6 Limit-expression API (§0.3, shared by all BMS versions)
+
+The base class `BMS` provides two static methods (inherited by `BM4`/`BM1`/`BM3_3`):
+
+```cpp
+// n-th limit expression (n>=0):
+//   limit(0)=(), limit(1)=(0), limit(2)=(0)(1),
+//   limit(3)=(0)(1,1), ..., limit(n)=(0)(1,1,...,1) [n-1 ones]
+static std::shared_ptr<BMS> limit(BigInt n);
+
+// the master limit itself (column 1 all ones, infinite), marked is_master_limit_=true.
+// to_string() renders "(0)(1,1,1,…)"; expand(m) == limit(m).
+static std::shared_ptr<BMS> master_limit();
+```
+
+- Both return `std::shared_ptr<BMS>` whose dynamic type is always `BM4` (the limit expression is version-independent; BM4 is the canonical representation).
+- The sequence is `(),(0),(0)(1),(0)(1,1),(0)(1,1,1),…`; the master limit is its supremum `(0)(1,1,1,…)`.
+- Consistency: `master_limit()->expand(m)` equals `limit(m)->to_string()` (matches the `OrdinalNotation` §12 limit-expression convention).
 
 ---
 
@@ -160,6 +179,17 @@ std::cout << e.capabilities().has(Op::Expand) << "\n";  // 1
 bool threw = false;
 try { BM4 x("(1)"); /* compare against non-BMS */ }
 catch (const NotComparable&) { threw = true; }
+
+// Ex 5: limit expression (§0.3, shared by all BMS versions)
+std::cout << BMS::limit(0)->to_string() << "\n";   // ()
+std::cout << BMS::limit(1)->to_string() << "\n";   // (0)
+std::cout << BMS::limit(2)->to_string() << "\n";   // (0)(1)
+std::cout << BMS::limit(3)->to_string() << "\n";   // (0)(1,1)
+std::cout << BMS::limit(4)->to_string() << "\n";   // (0)(1,1,1)
+auto L = BMS::master_limit();
+std::cout << L->to_string() << "\n";            // (0)(1,1,1,…)
+L->expand(3);
+std::cout << L->to_string() << "\n";            // (0)(1,1)  == limit(3)
 ```
 
 ---
@@ -167,7 +197,7 @@ catch (const NotComparable&) { threw = true; }
 ## 7. Design notes
 
 - **Notation is expression, never evaluated**: `to_string()` only prints the matrix symbol `(a,b,...)(c,d,...)`; the library has **no** `Evaluate` / `ToOrdinal` numeric interface. `expand(n)` emits only the $n$-th fundamental column $FS_n(S)$ (`spec/notations/bms.en.md` §0.2.2) — no recursive iteration, no collapse to a number.
-- **Base class + subclass framework (user directive)**: base `BMS` implements the §0 shared skeleton (column-major store + §0.1 standard-form conditions + §0.2.1 shared helpers + §0.2.2 expand skeleton), exposing version differences through the two `virtual` hooks `parentOf` / `ascensionDegree`; `BM4` / `BM1` / `BM3_3` override the hooks as subclasses. Adding a version = adding a subclass.
+- **Base class + subclass framework (user directive)**: base `BMS` implements the §0 shared skeleton (column-major store + §0.1 legal-matrix conditions + §0.2.1 shared helpers + §0.2.2 expand skeleton), exposing version differences through the two `virtual` hooks `parentOf` / `ascensionDegree`; `BM4` / `BM1` / `BM3_3` override the hooks as subclasses. Adding a version = adding a subclass.
 - **Termination / well-foundedness: binned**: explicit user directive. The library only does "one-step expansion" (consistent with Prss / EpspSS), neither proving nor depending on termination. `compare()` uses **syntax order** (column-major lexicographic), not the real ordinal order; cross-type throws `NotComparable`.
 - **Storage**: column-major; `S_{x,y}` = `get_(x,y)`, out-of-bounds rows treated as $0$ (columns may differ in height, short columns are 0 below). `BigInt` is an `int64_t` alias (only expansion index / parse params).
 - **Unimplemented versions**: BM2 / BM2.1 / BM2.2 / BM3 / BM3.1 / BM3.2 / PsiCubed2 / Idealized — their $a_{k,m}$ exact formulas appear only in the basmat source, not public docs; the header notes them as pending, not yet wired in.

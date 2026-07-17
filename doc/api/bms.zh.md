@@ -57,7 +57,7 @@ BMS 继承 `googology::ordinal::OrdinalNotation`（→ `Notation`），因此：
 - 拥有：`name` / `family` / `subfamily` / `style` / `creator` / `version` / `capabilities` / `can` / `string_to_it` / `to_string` / `compare`（已覆盖）/ `expand`（已覆盖）/ `comparable` / `print` / `operator<<` / `reduce`。
 - 序数记号成员（均为 `OrdinalNotation` 虚方法，BMS 已覆盖其中相关者）：`normalize` / `is_standard` / `isSuccessor`（非虚，BMS 提供自身定义）/ `clone` / `roots`。
 
-> `is_standard()` 为 **`virtual`**（符合"标准型判定逐记号"）：BMS 用 §0.1 三条件直接句法判定；`OrdinalNotation` 默认走 §12 引擎，此处被 BMS 覆盖。
+> `is_standard()` 为 **`virtual`**（符合"标准型判定逐记号"）：BMS 当前以 §0.1 合法性三条件替代（必要非充分）；`OrdinalNotation` 默认走 §12 引擎，此处被 BMS 覆盖。BMS 无法用 §12 引擎判定真标准型——其 compare 为句法序而非真序数序。
 
 ---
 
@@ -94,8 +94,8 @@ std::string to_string() const override;            // 逆序列化回同格式
 BMS& expand(BigInt n) override;          // FS_n：就地改写 *this，返回自身（协变返回）
 int  compare(const Notation& other) const override;  // 语法全序；非 BMS 实参抛 NotComparable
 
-void normalize() override;                 // 强制 §0.1；不满足则保持原值
-bool is_standard() const override;         // §0.1 三条件（句法）直接判定
+void normalize() override;                 // 强制 §0.1 合法性；不满足则保持原值
+bool is_standard() const override;         // §0.1 合法性三条件（句法，必要非充分）
 bool isSuccessor() const;                  // 非虚：恒 false
 OrdinalNotation* clone() const override = 0;        // 各子类实现
 std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;  // 返回同类型空矩阵种子
@@ -119,11 +119,30 @@ int compare(const Notation& other) const override;  // 列主序字典序（语�
 - 同类型（同为某 BMS 子类）：按列主序（先比第 0 列逐行，再第 1 列……）字典比较；长短不一以存在列为准，越界行按 $0$。返回 $-1/0/+1$。
 - **跨类型**（如实参不是 `BMS` 子类）：抛 `NotComparable`（`compare` 非真序数序，库不跨族比较）。
 
-### 5.5 标准型 / 规范化
+### 5.5 合法性 / 标准型 / 规范化
 
-- `is_standard()`：**句法**判定 §0.1 三条件（首列全 0 / 每列非增 / 同行不超前超 1），不依赖展开或终止性。
-- `normalize()`：若已满足 §0.1 则无操作；若不满足（非法矩阵），按库惯例**保持 `*this` 不变**（不抛、不坍缩）。
+- `is_standard()`：当前以 §0.1 **合法性**三条件（首列全 0 / 每列非增 / 同行不超前超 1）**替代**标准型检测——这是标准型的**必要非充分**条件。BMS 无法用 §12 引擎判定真标准型，因其 `compare` 为句法序而非真序数序、`Trans()` 可能不终止。
+- `normalize()`：若已满足 §0.1 合法性则无操作；若不满足（非法矩阵），按库惯例**保持 `*this` 不变**（不抛、不坍缩）。
 - `isSuccessor()`：恒 `false`（BMS 无简单后继概念）。
+
+### 5.6 极限表达式 API（§0.3，所有 BMS 版本共用）
+
+基类 `BMS` 提供两个静态方法（各子类 `BM4`/`BM1`/`BM3_3` 继承）：
+
+```cpp
+// 第 n 项极限表达式（n>=0）：
+//   limit(0)=(), limit(1)=(0), limit(2)=(0)(1),
+//   limit(3)=(0)(1,1), ..., limit(n)=(0)(1,1,...,1) [n-1 个 1]
+static std::shared_ptr<BMS> limit(BigInt n);
+
+// 极限表达式本身（第二列全 1，无限），is_master_limit_=true 标记。
+// to_string() 渲染为 "(0)(1,1,1,…)"；expand(m) 等价 limit(m)。
+static std::shared_ptr<BMS> master_limit();
+```
+
+- 二者返回 `std::shared_ptr<BMS>`，动态类型恒为 `BM4`（极限表达式版本无关，以 BM4 为规范表示）。
+- 序列即 `(),(0),(0)(1),(0)(1,1),(0)(1,1,1),…`；master limit 是其上确界 `(0)(1,1,1,…)`。
+- 一致性：`master_limit()->expand(m)` 结果等于 `limit(m)->to_string()`（与 `OrdinalNotation` §12 的极限表达式约定一致）。
 
 ---
 
@@ -160,6 +179,17 @@ std::cout << e.capabilities().has(Op::Expand) << "\n";  // 1
 bool threw = false;
 try { BM4 x("(1)"); /* 与非 BMS 比较 */ }
 catch (const NotComparable&) { threw = true; }
+
+// 例 5：极限表达式（§0.3，所有 BMS 版本共用）
+std::cout << BMS::limit(0)->to_string() << "\n";   // ()
+std::cout << BMS::limit(1)->to_string() << "\n";   // (0)
+std::cout << BMS::limit(2)->to_string() << "\n";   // (0)(1)
+std::cout << BMS::limit(3)->to_string() << "\n";   // (0)(1,1)
+std::cout << BMS::limit(4)->to_string() << "\n";   // (0)(1,1,1)
+auto L = BMS::master_limit();
+std::cout << L->to_string() << "\n";            // (0)(1,1,1,…)
+L->expand(3);
+std::cout << L->to_string() << "\n";            // (0)(1,1)  == limit(3)
 ```
 
 ---
@@ -167,7 +197,7 @@ catch (const NotComparable&) { threw = true; }
 ## 7. 设计要点
 
 - **记号即表达式，一律不求值**：`to_string()` 只打印矩阵符号（`(a,b,...)(c,d,...)`）；本库**没有** `Evaluate` / `ToOrdinal` 数值求值接口。`expand(n)` 只产出第 $n$ 项基本列 $FS_n(S)$（`spec/notations/bms.zh.md` §0.2.2），不递归迭代、不坍缩成数。
-- **基类 + 子类框架（用户指令）**：基类 `BMS` 实现 §0 共用骨架（列主序存储 + §0.1 标准型三条件 + §0.2.1 共享辅助 + §0.2.2 expand 骨架），通过 `parentOf` / `ascensionDegree` 两个 `virtual` 钩子暴露版本差异；`BM4` / `BM1` / `BM3_3` 作为子类 override 钩子。新增版本只需加子类。
+- **基类 + 子类框架（用户指令）**：基类 `BMS` 实现 §0 共用骨架（列主序存储 + §0.1 合法矩阵三条件 + §0.2.1 共享辅助 + §0.2.2 expand 骨架），通过 `parentOf` / `ascensionDegree` 两个 `virtual` 钩子暴露版本差异；`BM4` / `BM1` / `BM3_3` 作为子类 override 钩子。新增版本只需加子类。
 - **终止性 / 良基性：已丢进垃圾桶**：用户明确指令忽略。库只做"一步展开"（与 Prss / EpspSS 一致），不证明也不依赖终止性。`compare()` 用**语法全序**（列主序字典序）而非真序数序，跨类型抛 `NotComparable`。
 - **存储**：列主序；`S_{x,y}` = `get_(x,y)`，访问越界行按 $0$（列可不等高，短列下方视为 $0$）。`BigInt` 即 `int64_t` 别名（仅展开索引 / 解析参数用）。
 - **未实现版本**：BM2 / BM2.1 / BM2.2 / BM3 / BM3.1 / BM3.2 / PsiCubed2 / Idealized 因 $a_{k,m}$ 精确公式仅见于 basmat 源码、公开文档未给，头注释标明待补，暂不接入。
