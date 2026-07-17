@@ -20,7 +20,7 @@ static void test_parse_and_standard() {
     CHECK(a.subfamily() == "bms");
     CHECK(a.style() == "matrix");
     CHECK(a.name() == "bm4");
-    CHECK(a.is_standard() == true);                 // §0.1 三条件满足
+    CHECK(a.is_standard() == true);                 // §0.1 合法性满足（必要非充分）
     CHECK(a.capabilities().has(Op::Expand));
     CHECK(a.capabilities().has(Op::Normalize));
     CHECK(a.capabilities().has(Op::Compare));
@@ -115,6 +115,25 @@ static void test_compare() {
     CHECK(BM4("(0)").compare(BM4("(0)(0)")) == -1);
 }
 
+static void test_limit() {
+    // §0.3 极限表达式（所有 BMS 版本共用）：
+    //   (),(0),(0)(1),(0)(1,1),(0)(1,1,1),...
+    CHECK(BMS::limit(0)->to_string() == "");      // 空矩阵 -> 序列化为空串（与 BM4("") 一致）
+    CHECK(BMS::limit(1)->to_string() == "(0)");
+    CHECK(BMS::limit(2)->to_string() == "(0)(1)");
+    CHECK(BMS::limit(3)->to_string() == "(0)(1,1)");
+    CHECK(BMS::limit(4)->to_string() == "(0)(1,1,1)");
+
+    // master limit：to_string 渲染为 (0)(1,1,1,…)
+    auto L = BMS::master_limit();
+    CHECK(L->to_string() == "(0)(1,1,1,…)");
+    // master_limit().expand(m) == limit(m)
+    L->expand(3);
+    CHECK(L->to_string() == "(0)(1,1)");
+    // 子类继承：BM4::limit 同样可用
+    CHECK(BM4::limit(3)->to_string() == "(0)(1,1)");
+}
+
 int main() {
     test_parse_and_standard();
     test_single_column();
@@ -122,6 +141,7 @@ int main() {
     test_bm33_note_example();
     test_variants_smoke();
     test_compare();
+    test_limit();
     if (g_fail == 0)
         std::cout << "test_bms: all assertions passed\n";
     else

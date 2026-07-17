@@ -13,7 +13,7 @@
 # 0. 共用展开骨架（BM4 标准；其余版本共用）
 
 # 0.1.定义
-合法矩阵（标准型）满足：
+合法矩阵（不一定标准型）满足：
 1. 首列全 $0$：$S_{0,y}=0$；
 2. 每列自上而下非增：$S_{x,y}\ge S_{x,y+1}$；
 3. 同行不超前超 $1$：$S_{x,y}\le \max_{p<x}S_{p,y}+1$（空最大值为 $0$）。
@@ -44,6 +44,13 @@ $$
 \mathit{Trans}()=0,\quad \mathit{Trans}(S+(0,\dots,0))=\mathit{Trans}(S)+1,\quad \mathit{Trans}(M)=\sup\{\mathit{Trans}(FS_i(M))\mid i\in\mathbb N\}.
 $$
 **库约定**：`expand(n)` 只产出第 $n$ 项基本列 $FS_n(S)$（一步展开，与 Prss / EpspSS 一致），不递归迭代、不求值。
+
+# 0.3.极限表达式（所有 BMS 版本共用）
+记极限表达式序列 $L_n\;(n\ge0)$：
+$$L_0=(),\quad L_1=(0),\quad L_2=(0)(1),\quad L_3=(0)(1,1),\quad L_4=(0)(1,1,1),\quad\dots$$
+即 $L_n\;(n\ge1)$ 为两列矩阵：第 $0$ 列 $(0)$，第 $1$ 列为 $n-1$ 个 $1$ 组成的列 $(1,1,\dots,1)$。
+极限 $\displaystyle\lim_{n\to\infty}L_n=(0)(1,1,1,\dots)$（第二列全 $1$，无限）——即 master limit。
+库实现：`BMS::limit(n)` / `BMS::master_limit()`（基类静态方法，各子类 `BM4`/`BM1`/`BM3_3` 继承）。`master_limit().expand(m)==limit(m)`（与 §12 约定一致）。
 
 ---
 

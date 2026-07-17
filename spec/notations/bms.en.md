@@ -13,7 +13,7 @@ Notation: column index $x$, row index $y$ (from $0$). $S=S_0S_1\cdots S_{X-1}$ (
 # 0. Shared expansion skeleton (BM4 standard; shared by all versions)
 
 # 0.1. Definition
-A valid matrix (standard form) satisfies:
+A valid matrix (not necessarily standard form) satisfies:
 1. First column all $0$: $S_{0,y}=0$;
 2. Each column non-increasing top-to-bottom: $S_{x,y}\ge S_{x,y+1}$;
 3. Same row advances by at most $1$: $S_{x,y}\le \max_{p<x}S_{p,y}+1$ (empty max is $0$).
@@ -44,6 +44,13 @@ $$
 \mathit{Trans}()=0,\quad \mathit{Trans}(S+(0,\dots,0))=\mathit{Trans}(S)+1,\quad \mathit{Trans}(M)=\sup\{\mathit{Trans}(FS_i(M))\mid i\in\mathbb N\}.
 $$
 **Library convention**: `expand(n)` emits only the $n$-th fundamental column $FS_n(S)$ (one-step expansion, consistent with Prss / EpspSS), without recursive iteration or evaluation.
+
+# 0.3. Limit expression (shared by all BMS versions)
+Let the limit-expression sequence be $L_n\;(n\ge0)$:
+$$L_0=(),\quad L_1=(0),\quad L_2=(0)(1),\quad L_3=(0)(1,1),\quad L_4=(0)(1,1,1),\quad\dots$$
+That is, $L_n\;(n\ge1)$ is a two-column matrix: column $0$ is $(0)$, column $1$ is a column of $n-1$ ones $(1,1,\dots,1)$.
+The limit $\displaystyle\lim_{n\to\infty}L_n=(0)(1,1,1,\dots)$ (column $1$ all ones, infinite) — the master limit.
+Library: `BMS::limit(n)` / `BMS::master_limit()` (base-class static methods, inherited by `BM4`/`BM1`/`BM3_3`). `master_limit().expand(m)==limit(m)` (consistent with §12).
 
 ---
 

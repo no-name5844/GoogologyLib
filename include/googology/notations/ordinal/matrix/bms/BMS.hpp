@@ -16,7 +16,7 @@ namespace ordinal {
 // （用户指令：把良基丢进垃圾桶）。expand(n) 只产出第 n 项基本列
 // FS_n(S) = G + B^(0) + ... + B^(n-1)（笔记"基本列前驱"定义，有限可算）。
 //
-// 架构（用户指令）：基类 BMS 实现 §0 整体框架（矩阵存储 + §0.1 标准型
+// 架构（用户指令）：基类 BMS 实现 §0 整体框架（矩阵存储 + §0.1 合法矩阵
 // 三条件 + §0.2.1 共享辅助 + §0.2.2 expand 骨架），通过两个 virtual
 // 钩子暴露"差异部分"：
 //   * parentOf(k,m)      —— 父项 p_k(m)（含/不含上行祖先检查）
@@ -31,9 +31,10 @@ protected:
     // 列主序矩阵。
     std::vector<std::vector<BigInt>> cols_;
 
-    // --- §0.1 标准型三条件（直接句法判定，不依赖展开/终止）---
+    // --- §0.1 合法矩阵三条件（直接句法判定，不依赖展开/终止）---
     // 1) 首列全 0；2) 每列自上而下非增；3) 同行不超前超 1。
-    bool satisfiesStandardForm_() const;
+    // 注：此为「合法矩阵」定义（不一定标准型），非标准型判定。
+    bool isLegal_() const;
 
     // --- §0.2.1 共享辅助（皆用 virtual parentOf / ascensionDegree）---
     int numCols_() const { return static_cast<int>(cols_.size()); }
@@ -80,11 +81,12 @@ public:
     // （真序数序需 Trans()，可能不终止——已丢进垃圾桶）。跨类型抛 NotComparable。
     int compare(const Notation& other) const override;
 
-    // 规范化：强制 §0.1。若已满足则无操作；若不满足（非法矩阵）按库惯例
+    // 规范化：强制 §0.1 合法性。若已满足则无操作；若不满足（非法矩阵）按库惯例
     // 保持 *this 不变。
     void normalize() override;
 
-    // 检测标准型：§0.1 三条件直接判定（override，符合"判定逐记号"）。
+    // 标准型检测：当前以 §0.1 合法性替代（必要非充分）。BMS 无法用 §12
+    // 引擎判定真标准型——其 compare 为句法序而非真序数序，Trans() 可能不终止。
     bool is_standard() const override;
 
     // BMS 无简单后继概念 -> false（文档说明）。基类 isSuccessor() 非 virtual，
@@ -95,6 +97,15 @@ public:
     // §12 引擎判定，故仅作纯虚满足）。
     OrdinalNotation* clone() const override = 0;
     std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;
+
+    // ===== 极限表达式（§0.3，所有 BMS 版本共用）=====
+    //   limit(0)=(), limit(1)=(0), limit(2)=(0)(1),
+    //   limit(3)=(0)(1,1), ..., limit(n)=(0)(1,1,...,1) [n-1 个 1]
+    //   master_limit() = (0)(1,1,1,...)（第二列全 1，无限），标记为极限表达式。
+    // master_limit().expand(m) == limit(m)（与 §12 约定一致）。
+    // 返回 shared_ptr<BMS>（动态类型恒为 BM4，因极限表达式版本无关）。
+    static std::shared_ptr<BMS> limit(BigInt n);
+    static std::shared_ptr<BMS> master_limit();
 
     // ===== 版本差异钩子（§0.2.1 父项 / 上升度）=====
     // 父项 p_k(m)：最大 p<m 满足 S_{p,k} < S_{m,k}，且
