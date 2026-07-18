@@ -97,7 +97,20 @@ void BMS::copyColumn_(int m, int i, std::vector<BigInt>& out) const {
 }
 
 // ---------------------------------------------------------------------------
-// §0.2.2 expand 骨架：FS_n(S) = G + B^(0) + ... + B^(n-1)
+// §0.2.2 expand 骨架（末列非全 0 的极限情形）：
+//   用户 2026-07-18 公式（本会话重发确认「基本」= 基本列定义）：
+//     expand((),n)    = n
+//     expand(S+(0),n) = S
+//     expand(S,n)      = G + B^(0)+...+B^(n)   (末列非全 0)
+//   用户本会话明确「原本的 n=1,2 对应库的 n=0,1」（整体偏移 1）：
+//     lib expand(0) = spec FS_1 = G + B^(0)       （1 块，原本 n=1）
+//     lib expand(1) = spec FS_2 = G + B^(0)+B^(1) （2 块，原本 n=2）
+//     lib expand(k) = spec FS_{k+1} = G + B^(0)+...+B^(k)（k+1 块）
+//   故一步 expand(n) 的坏块数 = n+1（含上界 i<=n），即原公式 RHS。
+//   该公式本身是「递归骨架」的一步；下一步再以 2n 递归（spec §0.2.2
+//   第二式），库不替用户做那步递归。FS_n 随 n 严格小于 S、单调向 S
+//   逼进，故可被 §12 引擎经有限次 expand 可达判定（与 spec n 偏移 1
+//   仅是索引差，不改变单调性）。
 // ---------------------------------------------------------------------------
 void BMS::expandToFS_(BigInt n) {
     int X = numCols_();
@@ -132,7 +145,13 @@ void BMS::expandToFS_(BigInt n) {
     if (r > 0) G.assign(cols_.begin(), cols_.begin() + r);
     int Bcols = (X - 1) - r;                    // 坏部列数
     std::vector<std::vector<BigInt>> result = G;
-    for (BigInt i = 0; i < n; ++i) {            // B^(0) .. B^(n-1)
+    // 坏块数 = n+1（含上界 i<=n）：lib expand(k) = spec FS_{k+1}
+    //   = G + B^(0)+...+B^(k)。k=0 → 1 块 = 好部 G + 坏部 B^(0)
+    //   （用户「n=0 该给好+坏」）；k>=1 → k+1 块 = spec FS_{k+1}。
+    //   整体偏移 1（原本 n=1,2 ↔ lib n=0,1）。FS_k 随 k 严格小于
+    //   S、单调向 S 逼进，可被 §12 引擎经有限次 expand 可达判定。
+    BigInt nb = n + 1;
+    for (BigInt i = 0; i < nb; ++i) {            // B^(0) .. B^(n)
         for (int m = 0; m < Bcols; ++m) {
             std::vector<BigInt> col;
             copyColumn_(m, static_cast<int>(i), col);

@@ -198,10 +198,12 @@ struct StdSystem {
 
 namespace detail {
 // does `x` have a fundamental sequence? (a limit does; 0 / a successor /
-// a closed CNF ordinal do not — they throw on expand).
+// a closed CNF ordinal do not — they throw on expand). Fundamental-sequence
+// indices are 0-based project-wide (design decision 2026-07-18): the first
+// (smallest) sequence element is fundSeq(x, 0).
 template <class Expr>
 inline bool has_fs(const StdSystem<Expr>& s, const Expr& x) {
-    try { (void)s.fundSeq(s.clone(x), 1); return true; }
+    try { (void)s.fundSeq(s.clone(x), 0); return true; }
     catch (...) { return false; }
 }
 template <class Expr>
@@ -211,12 +213,19 @@ inline Expr fs(const StdSystem<Expr>& s, const Expr& x, long long n) {
 
 // Find the finite candidate-index band [n0, n1] for a MONOTONIC fund_seq
 // (design.md §12.3). Returns false when no bounded band exists.
+// Fundamental-sequence indices are 0-based project-wide: fundSeq(X, 0) is
+// the smallest (minimal) sequence element, and the sequence is monotonically
+// non-decreasing in n. n0 = smallest n with fundSeq(X, n) >= target;
+// n1 = largest n (<= hi) with fundSeq(X, n) <= target.
 template <class Expr>
 inline bool band(const StdSystem<Expr>& s, const Expr& X, const Expr& target,
                 long long maxProbe, long long& n0, long long& n1) {
-    Expr f1 = fs(s, X, 1);
-    int c1 = s.cmp(f1, target);
-    if (c1 > 0) { n0 = 1; n1 = 0; return false; }
+    // floor = fundSeq(X, 0), the smallest element.
+    Expr f0 = fs(s, X, 0);
+    int c0 = s.cmp(f0, target);
+    if (c0 > 0) { n0 = 0; n1 = -1; return false; }   // even smallest > target → unreachable
+    if (c0 == 0) { n0 = 0; n1 = 0; return true; }    // smallest == target → band is [0,0]
+    // f0 < target: double-probe an upper bound hi with fundSeq(X, hi) >= target.
     long long hi = 1;
     for (;;) {
         Expr h = fs(s, X, hi);
@@ -227,12 +236,14 @@ inline bool band(const StdSystem<Expr>& s, const Expr& X, const Expr& target,
     }
     Expr hF = fs(s, X, hi);
     if (hi >= maxProbe && s.cmp(hF, target) < 0) { n0 = maxProbe + 1; n1 = 0; return false; }
-    long long a = 1, b = hi;
+    // n0 = smallest n in [0, hi] with fundSeq(X, n) >= target
+    long long a = 0, b = hi;
     while (a < b) {
         long long m = a + (b - a) / 2;
         if (s.cmp(fs(s, X, m), target) >= 0) b = m; else a = m + 1;
     }
     n0 = a;
+    // n1 = largest n in [n0, hi] with fundSeq(X, n) <= target
     a = n0; b = hi;
     while (a < b) {
         long long m = a + (b - a + 1) / 2;
@@ -265,10 +276,9 @@ inline bool is_standard_bfs(const StdSystem<Expr>& sys, const Expr& target,
         if (!has_fs(sys, X)) continue;
         long long n0 = 0, n1 = 0;
         if (!band(sys, X, target, maxProbe, n0, n1)) {
-            if (sys.cmp(fs(sys, X, 1), target) > 0) {
-                Expr Y = fs(sys, X, 1);
-                if (!seen(Y)) Q.push_back(std::move(Y));
-            }
+            // band failed: even fundSeq(X, 0) (the smallest element) exceeds
+            // target, so NO fundamental-sequence element of X can equal target
+            // (the sequence is monotonic). Nothing to push — skip.
             continue;
         }
         for (long long n = n0; n <= n1; ++n) {
@@ -300,11 +310,7 @@ inline bool is_standard_backtrack(const StdSystem<Expr>& sys, const Expr& target
         if (!has_fs(sys, X)) continue;
         long long n0 = 0, n1 = 0;
         if (!band(sys, X, target, (1LL << 18), n0, n1)) {
-            if (sys.cmp(fs(sys, X, 1), target) > 0) {
-                Expr Y = fs(sys, X, 1);
-                if (sys.cmp(Y, target) == 0) return true;
-                if (!seen(Y)) Q.push_back(std::move(Y));
-            }
+            // band failed: even the smallest FS element > target → unreachable.
             continue;
         }
         for (long long n = n0; n <= n1; ++n) {
