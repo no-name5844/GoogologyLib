@@ -39,7 +39,10 @@ protected:
     // --- §0.2.1 共享辅助（皆用 virtual parentOf / ascensionDegree）---
     int numCols_() const { return static_cast<int>(cols_.size()); }
     int colHeight_(int x) const { return (x < 0 || x >= numCols_()) ? 0
-                                          : static_cast<int>(cols_[x].size()); }
+                                         : static_cast<int>(cols_[x].size()); }
+    // 列「值高度」：去掉末尾连续 0 后的有效高度（尾随零不改值，
+    // 用户 2026-07-18）。用于 compare / to_string；expand 仍用满形 colHeight_。
+    int valHeight_(int x) const;
     // S_{x,y}；越界行按 0。
     BigInt get_(int x, int y) const;
     // 末列 LNZ 行 z = max{y | 末列[y] > 0}；末列全 0 返回 -1。
@@ -77,24 +80,28 @@ public:
     // expand(n) = 第 n 项基本列 FS_n(S)，原地改写并返回 *this（协变返回）。
     BMS& expand(BigInt n) override;
 
-    // 语法全序（列主序字典序）：用于容器/排序，**非**真正序数序
-    // （真序数序需 Trans()，可能不终止——已丢进垃圾桶）。跨类型抛 NotComparable。
+    // 列主序字典序全序：用于容器/排序，也充当 §12 引擎的剪枝序。
+    // 在**标准型**上它与真序数序一致（故足够供 is_standard 引擎使用）；
+    // 我们不显式计算 Trans() 的真序数值（可能不终止——已丢进垃圾桶）。
+    // master_limit（极限表达式）视为上确界。跨类型抛 NotComparable。
     int compare(const Notation& other) const override;
 
     // 规范化：强制 §0.1 合法性。若已满足则无操作；若不满足（非法矩阵）按库惯例
     // 保持 *this 不变。
     void normalize() override;
 
-    // 标准型检测：当前以 §0.1 合法性替代（必要非充分）。BMS 无法用 §12
-    // 引擎判定真标准型——其 compare 为句法序而非真序数序，Trans() 可能不终止。
-    bool is_standard() const override;
+    // 标准型检测：BMS **不覆写** is_standard()。它有基本列（expand）与极限
+    // 表达式（master_limit），故直接继承 OrdinalNotation 的通用 §12 引擎，与
+    // 所有有基本列定义的序数记号（Prss / ε_pSS / ε_ωSS / WeakVeblen …）
+    // **完全一致，不存在任何区别**。（isLegal_() 仅表达 §0.1 合法性，合法 ≠
+    // 标准型，供 normalize / 解析用。）
 
     // BMS 无简单后继概念 -> false（文档说明）。基类 isSuccessor() 非 virtual，
     // 故此处不写 override。
     bool isSuccessor() const;
 
-    // 多态拷贝（各子类实现）；roots() 返回最小标准矩阵种子（BMS 不用
-    // §12 引擎判定，故仅作纯虚满足）。
+    // 多态拷贝（各子类实现）；roots() 返回本记号系统的极限表达式
+    // master_limit()（§12 引擎的根）。
     OrdinalNotation* clone() const override = 0;
     std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;
 

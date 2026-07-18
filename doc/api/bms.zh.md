@@ -55,9 +55,9 @@
 BMS 继承 `googology::ordinal::OrdinalNotation`（→ `Notation`），因此：
 
 - 拥有：`name` / `family` / `subfamily` / `style` / `creator` / `version` / `capabilities` / `can` / `string_to_it` / `to_string` / `compare`（已覆盖）/ `expand`（已覆盖）/ `comparable` / `print` / `operator<<` / `reduce`。
-- 序数记号成员（均为 `OrdinalNotation` 虚方法，BMS 已覆盖其中相关者）：`normalize` / `is_standard` / `isSuccessor`（非虚，BMS 提供自身定义）/ `clone` / `roots`。
+- 序数记号成员：`normalize`（虚，BMS 覆盖）/ `is_standard`（**非虚、通用**，BMS **不覆盖**）/ `isSuccessor`（BMS 提供自身定义）/ `clone` / `roots`（BMS 覆盖）。
 
-> `is_standard()` 为 **`virtual`**（符合"标准型判定逐记号"）：BMS 当前以 §0.1 合法性三条件替代（必要非充分）；`OrdinalNotation` 默认走 §12 引擎，此处被 BMS 覆盖。BMS 无法用 §12 引擎判定真标准型——其 compare 为句法序而非真序数序。
+> `is_standard()` 是 `OrdinalNotation` 的 **NON-VIRTUAL 通用实现**：标准型**检测**对所有「存在基本列定义的序数记号」是**同一套 §12 引擎，没有任何区别**（Prss / ε_pSS / ε_ωSS / WeakVeblen / BMS / …）。引擎只需「基本列（`expand`）+ 极限表达式（`roots`/`master_limit`）+ 一个用于剪枝的序（`compare`）」，**不需要真序数序**——BMS 的句法列序在标准型上与序数序一致，足够供引擎剪枝。故 BMS **不覆盖** `is_standard()`，直接继承通用引擎。（`normalize()` 是「规范化动作」，逐记号，仍为 virtual；两者不要混淆。）
 
 ---
 
@@ -95,10 +95,10 @@ BMS& expand(BigInt n) override;          // FS_n：就地改写 *this，返回�
 int  compare(const Notation& other) const override;  // 语法全序；非 BMS 实参抛 NotComparable
 
 void normalize() override;                 // 强制 §0.1 合法性；不满足则保持原值
-bool is_standard() const override;         // §0.1 合法性三条件（句法，必要非充分）
+// is_standard() 不覆盖：继承 OrdinalNotation 的 NON-VIRTUAL 通用 §12 引擎
 bool isSuccessor() const;                  // 非虚：恒 false
 OrdinalNotation* clone() const override = 0;        // 各子类实现
-std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;  // 返回同类型空矩阵种子
+std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;  // 返回极限表达式 master_limit()（§12 引擎的根）
 ```
 
 ### 5.3 子类（版本差异）
@@ -116,12 +116,12 @@ std::vector<std::shared_ptr<OrdinalNotation>> roots() const override;  // 返回
 ```cpp
 int compare(const Notation& other) const override;  // 列主序字典序（语法全序）
 ```
-- 同类型（同为某 BMS 子类）：按列主序（先比第 0 列逐行，再第 1 列……）字典比较；长短不一以存在列为准，越界行按 $0$。返回 $-1/0/+1$。
+- 同类型（同为某 BMS 子类）：按列主序（先比第 0 列逐行，再第 1 列……）字典比较；长短不一以存在列为准，越界行按 $0$。返回 $-1/0/+1$。例如 `(0,0)(1,1,1)` 与 `(0)(1,1,1)` 判等（尾随零不改大小，用户 2026-07-18）。
 - **跨类型**（如实参不是 `BMS` 子类）：抛 `NotComparable`（`compare` 非真序数序，库不跨族比较）。
 
 ### 5.5 合法性 / 标准型 / 规范化
 
-- `is_standard()`：当前以 §0.1 **合法性**三条件（首列全 0 / 每列非增 / 同行不超前超 1）**替代**标准型检测——这是标准型的**必要非充分**条件。BMS 无法用 §12 引擎判定真标准型，因其 `compare` 为句法序而非真序数序、`Trans()` 可能不终止。
+- `is_standard()`：**不覆盖**，直接用 `OrdinalNotation` 的 NON-VIRTUAL 通用 §12 引擎——与所有「有基本列定义」的序数记号**完全一致，无任何区别**。判定：从极限表达式 `master_limit()`=`(0)(1,1,1,…)` 出发，经**有限次 `expand` 并取基本列前缀**可达者即标准型。`()` / `(0)` / `(0)(0)` / `(0)(1)`=ω / 各 `limit(n)` 均可达。§0.1 **合法性**（首列全 0 / 每列非增 / 同行不超前超 1）只是标准型的**必要非充分**条件（合法 ≠ 标准型）；但 `(0,0,0)(1,1,1)(2,2,0)` 既合法、其值（简写 `(0)(1,1,1)(2,2)`）又夹在 `limit(4)` 与 `limit(5)` 之间，从 `master_limit` 经有限次 `expand` 可达 → **是标准型**（用户 2026-07-18 明确断言，实测 `is_standard()==true`）。合法性仅供 `normalize` / 解析用。
 - `normalize()`：若已满足 §0.1 合法性则无操作；若不满足（非法矩阵），按库惯例**保持 `*this` 不变**（不抛、不坍缩）。
 - `isSuccessor()`：恒 `false`（BMS 无简单后继概念）。
 
@@ -154,27 +154,28 @@ static std::shared_ptr<BMS> master_limit();
 using namespace googology;
 using namespace googology::ordinal;
 
-// 例 1：BM4 一步展开（基本列 FS_n）
+// 例 1：BM4 一步展开（基本列 FS_n）；to_string 输出简写（尾随零忽略）
 BM4 a("(0,0,0)(1,1,1)(2,2,0)");
 a.expand(1);
-std::cout << a.to_string() << "\n";   // (0,0,0)(1,1,1)  == FS_1
+std::cout << a.to_string() << "\n";   // (0)(1,1,1)  == FS_1（满形 (0,0,0)(1,1,1)，简写后）
 BM4 b("(0,0,0)(1,1,1)(2,2,0)");
 b.expand(2);
-std::cout << b.to_string() << "\n";   // (0,0,0)(1,1,1)(2,1,1) == FS_2
+std::cout << b.to_string() << "\n";   // (0)(1,1,1)(2,1,1) == FS_2（满形 (0,0,0)(1,1,1)(2,1,1)）
 
 // 例 2：单列递减（末列无父项，r<0 分支）
 BM4 c("(5)");
 c.expand(3);
 std::cout << c.to_string() << "\n";   // (2)   （5 - 3）
 
-// 例 3：BM3.3 笔记示例首项
+// 例 3：BM3.3 笔记示例首项（to_string 输出简写）
 BM3_3 d("(0,0,0)(1,1,1)(2,1,0)(1,1,1)");
 d.expand(1);
-std::cout << d.to_string() << "\n";   // (0,0,0)(1,1,1)(2,1,0)(1,1,0)
+std::cout << d.to_string() << "\n";   // (0)(1,1,1)(2,1)(1,1)  （满形 (0,0,0)(1,1,1)(2,1,0)(1,1,0)，简写后）
 
 // 例 4：能力 / 标准型 / 跨类型比较
 BM4 e("(0,0,0)(1,1,1)(2,2,0)");
-std::cout << e.is_standard() << "\n";          // 1（满足 §0.1）
+std::cout << e.is_standard() << "\n";          // 1（合法且值夹在 limit(4)~limit(5)，从 master_limit 可达 -> 标准型）
+std::cout << BM4("(0)(1)").is_standard() << "\n"; // 1（ω = limit(2)，从 master_limit 可达）
 std::cout << e.capabilities().has(Op::Expand) << "\n";  // 1
 bool threw = false;
 try { BM4 x("(1)"); /* 与非 BMS 比较 */ }
@@ -196,7 +197,7 @@ std::cout << L->to_string() << "\n";            // (0)(1,1)  == limit(3)
 
 ## 7. 设计要点
 
-- **记号即表达式，一律不求值**：`to_string()` 只打印矩阵符号（`(a,b,...)(c,d,...)`）；本库**没有** `Evaluate` / `ToOrdinal` 数值求值接口。`expand(n)` 只产出第 $n$ 项基本列 $FS_n(S)$（`spec/notations/bms.zh.md` §0.2.2），不递归迭代、不坍缩成数。
+- **记号即表达式，一律不求值**：`to_string()` 只打印矩阵符号，输出用**简写**——每列末尾连续 $0$ 省略（如 `(0,0,0)`→`(0)`，`(0,0,0)(1,1,1)(2,2,0)`→`(0)(1,1,1)(2,2)`；尾随零不改变整体大小，用户 2026-07-18 明确）；本库**没有** `Evaluate` / `ToOrdinal` 数值求值接口。`expand(n)` 只产出第 $n$ 项基本列 $FS_n(S)$（`spec/notations/bms.zh.md` §0.2.2），不递归迭代、不坍缩成数。
 - **基类 + 子类框架（用户指令）**：基类 `BMS` 实现 §0 共用骨架（列主序存储 + §0.1 合法矩阵三条件 + §0.2.1 共享辅助 + §0.2.2 expand 骨架），通过 `parentOf` / `ascensionDegree` 两个 `virtual` 钩子暴露版本差异；`BM4` / `BM1` / `BM3_3` 作为子类 override 钩子。新增版本只需加子类。
 - **终止性 / 良基性：已丢进垃圾桶**：用户明确指令忽略。库只做"一步展开"（与 Prss / EpspSS 一致），不证明也不依赖终止性。`compare()` 用**语法全序**（列主序字典序）而非真序数序，跨类型抛 `NotComparable`。
 - **存储**：列主序；`S_{x,y}` = `get_(x,y)`，访问越界行按 $0$（列可不等高，短列下方视为 $0$）。`BigInt` 即 `int64_t` 别名（仅展开索引 / 解析参数用）。
