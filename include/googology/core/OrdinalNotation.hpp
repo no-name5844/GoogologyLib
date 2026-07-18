@@ -80,17 +80,23 @@ public:
     virtual std::vector<std::shared_ptr<OrdinalNotation>> roots() const = 0;
 
     // Detect whether *this is in standard form (标准型), per design.md §12.
-    // Runs the reusable §12 decision engine WITHIN THIS notation
-    // system, using only this notation's own compare() / expand() (its
-    // fundamental sequence) / roots(). Member of the ordinal-notation
-    // class by design — the judgment is an ordinal-notation concept.
-    // DECLARED VIRTUAL: the decision is PER-NOTATION. The ordinal
-    // SEQUENCE notations (Prss / ε_pSS / ε_ωSS) use the generic
-    // expansion-reachability engine defined in this header; a matrix notation like BMS
-    // overrides it with its own direct syntactic check (§0.1 of its
-    // article). Making it virtual keeps the "标准型判定属于序数记号
-    // 这个类" principle uniform across all ordinal notations.
-    virtual bool is_standard() const;
+    // Runs the reusable §12 decision engine WITHIN THIS notation system,
+    // using only this notation's own compare() / expand() (its fundamental
+    // sequence) / roots(). Member of the ordinal-notation class by design —
+    // the judgment is an ordinal-notation concept.
+    //
+    // NON-VIRTUAL and UNIVERSAL: standard-form DETECTION is one single
+    // implementation shared by EVERY ordinal notation. For any notation that
+    // has a fundamental-sequence definition (which is all of them that matter
+    // — Prss / ε_pSS / ε_ωSS / WeakVeblen / BMS / …), the §12 reachability
+    // definition applies identically; there is NO per-notation distinction.
+    // The engine needs only a fundamental sequence (expand) + a limit
+    // expression (roots) + an order for pruning (compare). It deliberately
+    // does NOT require a "true" ordinal order: a notation's own compare()
+    // agrees with ordinal order on its STANDARD forms, which is all the
+    // pruning needs. (Contrast normalize(), the rewriting ACTION, which is
+    // virtual / per-notation.)
+    bool is_standard() const;
 
 private:
     // Expand `work` (a scratch sequence) until its prefix (from startIdx)

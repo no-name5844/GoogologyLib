@@ -15,24 +15,42 @@ static int g_fail = 0;
 
 static void test_parse_and_standard() {
     BM4 a("(0,0,0)(1,1,1)(2,2,0)");
-    CHECK(a.to_string() == "(0,0,0)(1,1,1)(2,2,0)");
+    // to_string 输出简写（用户 2026-07-18：末尾尾随零忽略），(0,0,0)->(0)
+    CHECK(a.to_string() == "(0)(1,1,1)(2,2)");
     CHECK(a.family() == Family::Ordinal);
     CHECK(a.subfamily() == "bms");
     CHECK(a.style() == "matrix");
     CHECK(a.name() == "bm4");
-    CHECK(a.is_standard() == true);                 // §0.1 合法性满足（必要非充分）
     CHECK(a.capabilities().has(Op::Expand));
     CHECK(a.capabilities().has(Op::Normalize));
     CHECK(a.capabilities().has(Op::Compare));
     CHECK(a.isSuccessor() == false);
 
-    // 非标准：首列非全 0
+    // 标准型检测走通用 §12 引擎（is_standard 是 OrdinalNotation 的
+    // NON-VIRTUAL 通用实现，与 Prss / ε_pSS / … 完全一致，无任何区别）：
+    // 从 master limit (0)(1,1,1,…) 出发，经有限次 expand + 取基本列前缀
+    // 可达者为标准型。
+    //   () / (0) / (0)(0) / (0)(1)=ω / limit(n) 等均可达 -> 标准型。
+    CHECK(BM4("").is_standard() == true);           // () = 0
+    CHECK(BM4("(0)").is_standard() == true);        // 1（后继）
+    CHECK(BM4("(0)(0)").is_standard() == true);     // 2
+    CHECK(BM4("(0)(1)").is_standard() == true);     // ω = limit(2)
+    CHECK(BMS::master_limit()->is_standard() == true);
+
+    // 合法且标准型：(0,0,0)(1,1,1)(2,2,0) 满足 §0.1 合法性，且其值
+    // (0)(1,1,1)(2,2) 夹在 limit(4) 与 limit(5) 之间，从该记号系统的
+    // master limit 经有限次 expand 可达 -> 标准型（用户 2026-07-18 明确断言）。
+    // compare 按值（尾随零不改大小）判定可达性。
+    CHECK(a.is_standard() == true);
+
+    // 非法（首列非全 0）：更谈不上标准型。
     BM4 bad("(1,0,0)(0,0,0)");
     CHECK(bad.is_standard() == false);
     // normalize 对非法矩阵保持原值不动（库惯例）
     BM4 bad2("(1,0,0)");
     bad2.normalize();
-    CHECK(bad2.to_string() == "(1,0,0)");
+    // 输出简写（尾随零忽略）：(1,0,0) -> (1)
+    CHECK(bad2.to_string() == "(1)");
 }
 
 static void test_single_column() {
@@ -53,16 +71,17 @@ static void test_bm4_fs() {
     //   末列 LNZ z=1，坏根 r=p_1(2)=1；G=列0，B=列1=(1,1,1)；
     //   Δ_0 = S_{2,0}-S_{1,0} = 1，Δ_1=0 (k>=z)。
     //   FS_1 = (0,0,0)(1,1,1)；FS_2 = (0,0,0)(1,1,1)(2,1,1)；
-    //   FS_3 = (0,0,0)(1,1,1)(2,1,1)(3,1,1)。
+    //   FS_3 = (0,0,0)(1,1,1)(2,1,1)(3,1,1) [满形]。
+    //   to_string 输出简写（尾随零忽略）：(0,0,0)->(0)，故下面用简写。
     BM4 a("(0,0,0)(1,1,1)(2,2,0)");
     a.expand(1);
-    CHECK(a.to_string() == "(0,0,0)(1,1,1)");
+    CHECK(a.to_string() == "(0)(1,1,1)");
     BM4 b("(0,0,0)(1,1,1)(2,2,0)");
     b.expand(2);
-    CHECK(b.to_string() == "(0,0,0)(1,1,1)(2,1,1)");
+    CHECK(b.to_string() == "(0)(1,1,1)(2,1,1)");
     BM4 c("(0,0,0)(1,1,1)(2,2,0)");
     c.expand(3);
-    CHECK(c.to_string() == "(0,0,0)(1,1,1)(2,1,1)(3,1,1)");
+    CHECK(c.to_string() == "(0)(1,1,1)(2,1,1)(3,1,1)");
 }
 
 static void test_bm33_note_example() {
@@ -71,7 +90,9 @@ static void test_bm33_note_example() {
     //   即 FS_1 应为 (0,0,0)(1,1,1)(2,1,0)(1,1,0)。
     BM3_3 a("(0,0,0)(1,1,1)(2,1,0)(1,1,1)");
     a.expand(1);
-    CHECK(a.to_string() == "(0,0,0)(1,1,1)(2,1,0)(1,1,0)");
+    // 满形 FS_1 = (0,0,0)(1,1,1)(2,1,0)(1,1,0)；to_string 简写
+    // （尾随零忽略）-> (0,0,0)->(0)，(2,1,0)->(2,1)，(1,1,0)->(1,1)。
+    CHECK(a.to_string() == "(0)(1,1,1)(2,1)(1,1)");
 }
 
 static void test_variants_smoke() {
