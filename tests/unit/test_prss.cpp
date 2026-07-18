@@ -16,13 +16,13 @@ int main() {
     // indexing the RUNNING sequence (no cyclic tail wrap).
     // (0,1,2): n=3, a_n=2, br=2, L=1.
     assert(Prss("(0,1,2)").expand(0).to_string() == "(0, 1, 1)");
-    assert(Prss("(0,1,2)").expand(1).to_string() == "(0, 1, 1)");
-    assert(Prss("(0,1,2)").expand(2).to_string() == "(0, 1, 1, 1)");
-    assert(Prss("(0,1,2)").expand(3).to_string() == "(0, 1, 1, 1, 1)");
+    assert(Prss("(0,1,2)").expand(1).to_string() == "(0, 1, 1, 1)");
+    assert(Prss("(0,1,2)").expand(2).to_string() == "(0, 1, 1, 1, 1)");
+    assert(Prss("(0,1,2)").expand(3).to_string() == "(0, 1, 1, 1, 1, 1)");
 
     // (0,1,2,2,2): n=5, a_n=2, br=2, L=3.
     assert(Prss("(0,1,2,2,2)").expand(0).to_string() == "(0, 1, 2, 2, 1)");
-    assert(Prss("(0,1,2,2,2)").expand(1).to_string() == "(0, 1, 2, 2, 1, 2, 2)");
+    assert(Prss("(0,1,2,2,2)").expand(1).to_string() == "(0, 1, 2, 2, 1, 2, 2, 1)");
 
     // PrSS successor ends in 0: expand drops the trailing 0 (regardless of m)
     assert(Prss("(0,1,0)").expand(3).to_string() == "(0, 1)");

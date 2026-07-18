@@ -172,7 +172,7 @@ static void test_indexer_and_normalize() {
     {
         Prss A("(0, 1, 2)");
         Prss pristine = A;
-        assert(A[2].to_string() == "(0, 1, 1, 1)");
+        assert(A[2].to_string() == "(0, 1, 1, 1, 1)");
         assert(A.to_string() == pristine.to_string());
     }
     // --- isSuccessor(): ends in 1 ---

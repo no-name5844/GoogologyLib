@@ -100,8 +100,9 @@ Prss& Prss::expand(BigInt m) {
         if (an > 0) seq_[static_cast<size_t>(n - 1)] = an - 1; // expand(A,0) = expandLen(A,0)
         return *this;
     }
-    // expand(A, m>0) = expandLen(A, m*L - 1)
-    BigInt M = m * L - 1;
+    // expand(A, m>0) = expandLen(A, m*L)   per the PrSS article
+    // (0-based: m=0 -> base, m=1 -> base+L elems, ...).
+    BigInt M = m * L;
     return expandLen_(M);
 }
 
