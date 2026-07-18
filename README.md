@@ -9,7 +9,7 @@
 > (C / C++ / java / python / Lean4). `master` holds the language-neutral `spec/`
 > and golden `tests/vectors/`.
 
-> **当前版本 / Current version**: `v0.1.1` — 发布以 git tag 提供，见
+> **当前版本 / Current version**: `v0.2.0` — 发布以 git tag 提供，见
 > [Releases](https://github.com/no-name5844/GoogologyLib/releases)。
 
 ---
@@ -90,7 +90,7 @@ expansion indices — never for numeric evaluation.
 发布以 **git tag** 形式提供。使用者只需取某一个版本快照，无需克隆整个仓库历史：
 
 **中文**
-- 浅克隆指定版本：`git clone --depth 1 --branch v0.1.1 https://github.com/no-name5844/GoogologyLib.git`
+- 浅克隆指定版本：`git clone --depth 1 --branch v0.2.0 https://github.com/no-name5844/GoogologyLib.git`
 - 或在 GitHub Releases 页下载该版本的源码压缩包（zip / tar.gz），解压即用。
 - **预编译库**：Windows x64 用户可直接用 `lib/windows-x64/` 下的 `libgoogology.a` /
   `libgoogology.dll` / `libgoogology.dll.a` 链接，无需自行编译；其他平台请运行
@@ -98,7 +98,7 @@ expansion indices — never for numeric evaluation.
 - 升级版本：仅改 tag 名（如 `v0.2.0`）重新浅克隆 / 重新下载即可。
 
 **English**
-- Shallow-clone a version: `git clone --depth 1 --branch v0.1.1 https://github.com/no-name5844/GoogologyLib.git`
+- Shallow-clone a version: `git clone --depth 1 --branch v0.2.0 https://github.com/no-name5844/GoogologyLib.git`
 - Or download the source archive (zip / tar.gz) of that tag from GitHub Releases.
 - **Prebuilt libs**: Windows x64 users can link `lib/windows-x64/libgoogology.{a,dll,dll.a}`
   directly; other platforms run `scripts/build_lib.sh` to build (artifacts are platform/compiler specific).
@@ -116,10 +116,10 @@ std::cout << k.expand(1);     // one rewrite step -> "2 ^ (2 ^^ 2)"
 
 ## 文档状态 / Doc status
 
-> 本文件对应 **v0.1.1**（C++ 参考实现分支）。代码已对齐设计：记号一律不求值，`expand` /
+> 本文件对应 **v0.2.0**（C++ 参考实现分支）。代码已对齐设计：记号一律不求值，`expand` /
 > `reduce` 返回符号化重写轨迹；能力位标出已实现运算。
 >
-> This document matches **v0.1.1** (the C++ reference branch). The code is aligned with the
+> This document matches **v0.2.0** (the C++ reference branch). The code is aligned with the
 > design: notations are never evaluated; `expand` / `reduce` return symbolic traces; the
 > capability bitset marks which ops are implemented.
 
