@@ -7,3 +7,6 @@ boost-1.91.0-1-cmake.7z
 *.o
 *.obj
 my test/*
+
+
+CMakeFiles/**

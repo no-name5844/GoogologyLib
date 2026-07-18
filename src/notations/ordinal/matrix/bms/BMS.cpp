@@ -100,11 +100,9 @@ void BMS::copyColumn_(int m, int i, std::vector<BigInt>& out) const {
 // §0.2.2 expand 骨架：FS_n(S) = G + B^(0) + ... + B^(n-1)
 // ---------------------------------------------------------------------------
 void BMS::expandToFS_(BigInt n) {
-    if (n < 1) n = 1;
     int X = numCols_();
     if (X == 0) {                                   // expand((),n)=n：n 个零列
         cols_.clear();
-        for (BigInt i = 0; i < n; ++i) cols_.push_back({0});
         return;
     }
     if (lastColAllZero_()) {   // 末列全 0（§0.1.3 无坏根 = 后继矩阵）：
