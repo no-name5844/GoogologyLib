@@ -87,7 +87,7 @@ static void test_weighted_fraction() {
     CHECK_EQ(w.to_string(), "1/2 + 1/4");
     CHECK_EQ(w.value().to_string(), "3/4");
 
-    // The user's example form: a weight-fraction with an integer part and
+    // Example form: a weight-fraction with an integer part and
     // non-unit weights. Demonstrates the general capability.
     WeightedFractionSum ex;
     ex.intPart = 2;

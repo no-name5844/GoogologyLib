@@ -50,7 +50,7 @@ public:
     // denotes. Equivalent to expand(A, n). Does NOT mutate *this.
     Prss operator[](BigInt n) const;
 
-    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // --- §12 limit-expression API. ---
     // The n-th term of Prss's limit expression  LIMIT = (0,1,2,3,...):
     //   limit(0) = (),  limit(1) = (0),  limit(2) = (0,1),  ...,
     //   limit(n) = (0,1,...,n-1).

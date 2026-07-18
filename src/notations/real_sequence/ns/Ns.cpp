@@ -82,7 +82,7 @@ Ns& Ns::expand(BigInt k) {
     // i.e. the index of the k-th element approaching x_α. A finite /
     // successor index has no fundamental sequence; core::Ordinal throws
     // std::domain_error, which we surface as UnsupportedOperation
-    // (the "can't auto-compute" case the user noted).
+    // (the "can't auto-compute" case).
     try {
         alpha_ = alpha_.expand(static_cast<long long>(k));
     } catch (const std::domain_error&) {

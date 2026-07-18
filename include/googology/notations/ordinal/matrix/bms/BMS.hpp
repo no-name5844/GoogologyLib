@@ -12,11 +12,11 @@ namespace ordinal {
 // BMS (Bashicu Matrix System) — 序数记号（矩阵 -> 序数，见笔记 §0 的
 // Trans() 映射）。同一套展开骨架，差异只在 父项条件 与 上升度 a_{k,m}。
 //
-// 本库"一律不求值、只展开一步"，故**终止性/良基性被刻意忽略**
-// （用户指令：把良基丢进垃圾桶）。expand(n) 只产出第 n 项基本列
+// 本库"一律不求值、只展开一步"，故**终止性/良基性被刻意忽略**。
+// expand(n) 只产出第 n 项基本列
 // FS_n(S) = G + B^(0) + ... + B^(n-1)（笔记"基本列前驱"定义，有限可算）。
 //
-// 架构（用户指令）：基类 BMS 实现 §0 整体框架（矩阵存储 + §0.1 合法矩阵
+// 架构：基类 BMS 实现 §0 整体框架（矩阵存储 + §0.1 合法矩阵
 // 三条件 + §0.2.1 共享辅助 + §0.2.2 expand 骨架），通过两个 virtual
 // 钩子暴露"差异部分"：
 //   * parentOf(k,m)      —— 父项 p_k(m)（含/不含上行祖先检查）
@@ -40,8 +40,8 @@ protected:
     int numCols_() const { return static_cast<int>(cols_.size()); }
     int colHeight_(int x) const { return (x < 0 || x >= numCols_()) ? 0
                                          : static_cast<int>(cols_[x].size()); }
-    // 列「值高度」：去掉末尾连续 0 后的有效高度（尾随零不改值，
-    // 用户 2026-07-18）。用于 compare / to_string；expand 仍用满形 colHeight_。
+    // 列「值高度」：去掉末尾连续 0 后的有效高度（尾随零不改值），
+    // 用于 compare / to_string；expand 仍用满形 colHeight_。
     int valHeight_(int x) const;
     // S_{x,y}；越界行按 0。
     BigInt get_(int x, int y) const;

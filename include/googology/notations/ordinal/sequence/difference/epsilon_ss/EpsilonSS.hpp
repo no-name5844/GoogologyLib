@@ -30,9 +30,9 @@ namespace ordinal {
 // normalize() computes the standard form (标准型) via the project's UNIVERSAL
 // standard-form definition (an expression is a legal expression iff obtainable
 // from a limit expression by finitely many expansions + taking a prefix); the
-// user-specified limit expression for both is (1, n), so the canonical
-// starter is (1, a_2). compare() is NOT in the article, but the user
-// specifies that under standard form the notation admits lexicographic ordinal
+// the limit expression for both is (1, n), so the canonical
+// starter is (1, a_2). compare() is NOT in the article, but under
+// standard form the notation admits lexicographic ordinal
 // comparison (consistent with Prss); it is implemented as lexicographic order
 // over the sequence — valid when both operands are in standard form;
 // cross-type comparison throws NotComparable. The C++ branch is the reference
@@ -84,7 +84,7 @@ public:
     // copy), so repeated indexing A[1], A[2], ... is safe.
     EpspSS operator[](BigInt n) const;
 
-    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // --- §12 limit-expression API. ---
     // The n-th term of ε_pSS's limit expression  LIMIT = (1, ω):
     //   limit(0) = (),  limit(n) = (1,n)  for n > 0.
     // LIMIT.expand(m) == limit(m);  is_standard() seeds the §12 BFS
@@ -94,7 +94,7 @@ public:
     static EpspSS master_limit();
 
     // Lexicographic ordinal comparison, valid when both operands are in
-    // standard form (user-specified property, consistent with Prss).
+    // standard form (consistent with Prss).
     // The master limit compares as the supremum. Cross-type arguments
     // throw NotComparable.
     int compare(const Notation& other) const override;
@@ -146,7 +146,7 @@ public:
     // denotes. Equivalent to expand(A, n). Does NOT mutate *this.
     EpsOmegaSS operator[](BigInt n) const;
 
-    // --- §12 limit-expression API (user-specified, 2026-07-16). ---
+    // --- §12 limit-expression API. ---
     // The n-th term of ε_ωSS's limit expression  LIMIT = (1, ω):
     //   limit(0) = (),  limit(n) = (1,n)  for n > 0.
     // LIMIT.expand(m) == limit(m);  is_standard() seeds the §12 BFS
@@ -156,7 +156,7 @@ public:
     static EpsOmegaSS master_limit();
 
     // Lexicographic ordinal comparison, valid when both operands are in
-    // standard form (user-specified property, consistent with Prss).
+    // standard form (consistent with Prss).
     // The master limit compares as the supremum. Cross-type arguments
     // throw NotComparable.
     int compare(const Notation& other) const override;

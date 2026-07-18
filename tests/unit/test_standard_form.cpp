@@ -56,7 +56,7 @@ static void test_backtrack() {
 // within THIS notation system, using only the notation's OWN
 // compare() (ordinal order) and expand() (its fundamental sequence).
 // The roots() seed is each notation's MASTER LIMIT expression
-// LIMIT, whose fundamental sequence is exactly limit(n) (user-specified).
+// LIMIT, whose fundamental sequence is exactly limit(n).
 static void test_member() {
     // Prss: master limit LIMIT = (0,1,2,...); limit(0)=(), limit(1)=(0),
     // limit(2)=(0,1). The bottom () and every limit(n) are reachable.
@@ -78,7 +78,7 @@ static void test_member() {
     CHECK(EpsOmegaSS("(1,3)").is_standard());
 }
 
-// The user-specified limit(n) API (design.md §12): the n-th term of
+// The limit(n) API (design.md §12): the n-th term of
 // the notation's limit expression.
 static void test_limit() {
     // Prss

@@ -12,8 +12,7 @@ namespace googology {
 // Ordinal notation base. EVERY ordinal notation (regardless of sub-family:
 // sequence, CNF, Veblen, Buchholz, Taranovsky, ...) derives from this, which
 // in turn derives from the generic Notation. This is where ordinal-specific
-// behavior lives — in particular the standard form (标准型) the project
-// discussed:
+// behavior lives — in particular the standard form (标准型):
 //
 //   * The *definition* of standard form is UNIVERSAL — it is the single
 //     UMBRELLA concept, shared by ALL ordinal notations. Formally:
@@ -46,7 +45,7 @@ protected:
     BigInt baseVal_ = 0;
     // Marks THIS object as the notation's MASTER LIMIT EXPRESSION
     // (design.md §12 "LIMIT"). A master limit has no finite sequence
-    // representation; its fundamental sequence is exactly the user-defined
+    // representation; its fundamental sequence is exactly the
     // limit(n):  LIMIT.expand(m) == limit(m).  compare() treats it as
     // the supremum (greater than every finite sequence). roots() seeds
     // the §12 BFS with a fresh master limit, so the engine operates
@@ -169,8 +168,7 @@ inline BigInt OrdinalNotation::expandUntilLarger_(std::vector<BigInt>& work,
 // ===========================================================================
 // §12 standard-form (标准表达式) decision engine.
 // MERGED from the former standalone core/StandardForm.hpp into this header so
-// the ordinal-notation class carries its own judgment logic in one place
-// (project decision: no separate one-function-per-file module).
+// the ordinal-notation class carries its own judgment logic in one place.
 //
 // Scoped to ORDINAL notations: it relies only on (a) a total ordinal order
 // `cmp` and (b) a fundamental-sequence rule `fundSeq`, both of which exist
@@ -199,7 +197,7 @@ struct StdSystem {
 namespace detail {
 // does `x` have a fundamental sequence? (a limit does; 0 / a successor /
 // a closed CNF ordinal do not — they throw on expand). Fundamental-sequence
-// indices are 0-based project-wide (design decision 2026-07-18): the first
+// indices are 0-based project-wide: the first
 // (smallest) sequence element is fundSeq(x, 0).
 template <class Expr>
 inline bool has_fs(const StdSystem<Expr>& s, const Expr& x) {

@@ -26,12 +26,10 @@ namespace ordinal {
 // *this; to_string() renders it.
 //
 // NOTE (architecture flag): this derives straight from Notation, NOT from
-// OrdinalNotation. The earlier project directive said "all ordinal notations
-// inherit OrdinalNotation (standard-form detection)". But weak-Veblen is NOT
-// a natural-number SEQUENCE notation — its entries are ordinal PAIRS (a@b) —
-// and the article defines NO standard form for it. Following "照文章写" (do not
-// add what the article omits), no normalize()/isSuccessor() is added. The
-// user should decide whether a standard-form concept belongs here.
+// OrdinalNotation. weak-Veblen is NOT a natural-number SEQUENCE notation —
+// its entries are ordinal PAIRS (a@b) — and the article defines NO standard
+// form for it. Following "照文章写" (do not add what the article omits),
+// no normalize()/isSuccessor() is added.
 class WeakVeblen : public Notation {
     Ordinal ord_;   // the (a@b) expression tree
 

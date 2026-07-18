@@ -18,9 +18,8 @@ BigInt BMS::get_(int x, int y) const {
 
 // 列「值高度」：去掉末尾连续 0 后的有效高度，但**至少保留 1**
 // （非空列最低是零列 (0)，不是空列）。例：(0,0,0) → 1（= (0)），
-// (2,2,0) → 2（= (2,2)），(1,1,1) → 3。尾随零不改变整体大小
-// （用户 2026-07-18 明确：任意列末尾加 0 不改值），但展开须看满形
-// （同用户：展开要看）。
+// (2,2,0) → 2（= (2,2)），(1,1,1) → 3。尾随零不改变整体大小，
+// 但展开须看满形。
 int BMS::valHeight_(int x) const {
     int h = colHeight_(x);
     if (h == 0) return 0;                       // 真正空列（不应出现）
@@ -98,17 +97,16 @@ void BMS::copyColumn_(int m, int i, std::vector<BigInt>& out) const {
 
 // ---------------------------------------------------------------------------
 // §0.2.2 expand 骨架（末列非全 0 的极限情形）：
-//   用户 2026-07-18 公式（本会话重发确认「基本」= 基本列定义）：
 //     expand((),n)    = n
 //     expand(S+(0),n) = S
 //     expand(S,n)      = G + B^(0)+...+B^(n)   (末列非全 0)
-//   用户本会话明确「原本的 n=1,2 对应库的 n=0,1」（整体偏移 1）：
-//     lib expand(0) = spec FS_1 = G + B^(0)       （1 块，原本 n=1）
-//     lib expand(1) = spec FS_2 = G + B^(0)+B^(1) （2 块，原本 n=2）
+//   索引整体偏移 1（spec 的 n=1,2 ⇔ 库的 n=0,1）：
+//     lib expand(0) = spec FS_1 = G + B^(0)       （1 块）
+//     lib expand(1) = spec FS_2 = G + B^(0)+B^(1) （2 块）
 //     lib expand(k) = spec FS_{k+1} = G + B^(0)+...+B^(k)（k+1 块）
 //   故一步 expand(n) 的坏块数 = n+1（含上界 i<=n），即原公式 RHS。
 //   该公式本身是「递归骨架」的一步；下一步再以 2n 递归（spec §0.2.2
-//   第二式），库不替用户做那步递归。FS_n 随 n 严格小于 S、单调向 S
+//   第二式），库不自动做那步递归。FS_n 随 n 严格小于 S、单调向 S
 //   逼进，故可被 §12 引擎经有限次 expand 可达判定（与 spec n 偏移 1
 //   仅是索引差，不改变单调性）。
 // ---------------------------------------------------------------------------
@@ -119,12 +117,10 @@ void BMS::expandToFS_(BigInt n) {
         return;
     }
     if (lastColAllZero_()) {   // 末列全 0（§0.1.3 无坏根 = 后继矩阵）：
-        // 一步基本列 FS_n = 前驱 = 去掉末列，**不再递归/求值**。库约定
-        // expand(n) 只产出一步 FS_n（见 spec §0.2.2 库约定）；后继的一步
-        // 展开就是其前驱，与 Prss 后继剥末位（seq.pop_back）语义一致。
-        // 旧实现「剥列后再 expandToFS_」执行的是 spec 的完整递归求值
-        // expand(S+(0),n)=expand(S,2n)，会把 (0)(0)…(0) 变成不动点，令
-        // §12 引擎无法下降到 () 及更小后继——已修正。
+        // 一步基本列 FS_n = 前驱 = 去掉末列，**不再递归/求值**。
+        // 后继的一步展开就是其前驱，与 Prss 后继剥末位
+        // （seq.pop_back）语义一致；若再递归展开会把 (0)(0)…(0)
+        // 变成不动点，令 §12 引擎无法下降到 () 及更小后继。
         cols_.pop_back();
         return;
     }
@@ -147,8 +143,8 @@ void BMS::expandToFS_(BigInt n) {
     std::vector<std::vector<BigInt>> result = G;
     // 坏块数 = n+1（含上界 i<=n）：lib expand(k) = spec FS_{k+1}
     //   = G + B^(0)+...+B^(k)。k=0 → 1 块 = 好部 G + 坏部 B^(0)
-    //   （用户「n=0 该给好+坏」）；k>=1 → k+1 块 = spec FS_{k+1}。
-    //   整体偏移 1（原本 n=1,2 ↔ lib n=0,1）。FS_k 随 k 严格小于
+    //   （即 spec FS_1 = 好+坏）；k>=1 → k+1 块 = spec FS_{k+1}。
+    //   整体偏移 1（spec n=1,2 ↔ lib n=0,1）。FS_k 随 k 严格小于
     //   S、单调向 S 逼进，可被 §12 引擎经有限次 expand 可达判定。
     BigInt nb = n + 1;
     for (BigInt i = 0; i < nb; ++i) {            // B^(0) .. B^(n)
@@ -268,8 +264,8 @@ int BMS::compare(const Notation& other) const {
         if (is_master_limit_ && o->is_master_limit_) return 0;
         return is_master_limit_ ? 1 : -1;
     }
-    // 值比较：每列先去掉末尾连续 0（尾随零不改大小，用户 2026-07-18
-    // 明确），再列主序字典序。列数不同且共享列均相等时，列多者更大。
+    // 值比较：每列先去掉末尾连续 0（尾随零不改大小），再列主序字典序。
+    // 列数不同且共享列均相等时，列多者更大。
     int X1 = numCols_(), X2 = o->numCols_();
     int X = std::max(X1, X2);
     for (int x = 0; x < X; ++x) {
@@ -335,9 +331,9 @@ void BMS::string_to_it(const std::string& s) {
         cols_.push_back(col);
         i = j + 1;
     }
-    // 输入「补全」（用户 2026-07-18）：解析后把各列补齐到最大列高
-    // （末尾补 0），使矩阵成矩形满形。展开须看满形（展开要看），而
-    // 比较/输出用值/简写。列数不变、只补列内尾随零 = 值不变。
+    // 输入「补全」：解析后把各列补齐到最大列高（末尾补 0），
+    // 使矩阵成矩形满形。展开须看满形，而比较/输出用值/简写。
+    // 列数不变、只补列内尾随零 = 值不变。
     int maxH = 0;
     for (auto& c : cols_) maxH = std::max(maxH, static_cast<int>(c.size()));
     for (auto& c : cols_) c.resize(maxH, 0);
@@ -345,7 +341,7 @@ void BMS::string_to_it(const std::string& s) {
 
 std::string BMS::to_string() const {
     if (is_master_limit_) return "(0)(1,1,1,…)";   // 极限表达式（第二列全 1，无限）
-    // 输出用简写（用户 2026-07-18）：每列去掉末尾连续 0。
+    // 输出用简写：每列去掉末尾连续 0。
     std::string out;
     for (size_t x = 0; x < cols_.size(); ++x) {
         int h = valHeight_(static_cast<int>(x));

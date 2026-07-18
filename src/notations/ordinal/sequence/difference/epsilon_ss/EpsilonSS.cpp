@@ -136,7 +136,7 @@ EpspSS EpspSS::operator[](BigInt n) const {
 }
 
 // Lexicographic ordinal comparison, valid when both operands are in standard
-// form (user-specified property, consistent with Prss). Cross-type arguments
+// form (consistent with Prss). Cross-type arguments
 // throw NotComparable.
 int EpspSS::compare(const Notation& other) const {
     const EpspSS* o = dynamic_cast<const EpspSS*>(&other);
@@ -296,7 +296,7 @@ EpsOmegaSS EpsOmegaSS::operator[](BigInt n) const {
 }
 
 // Lexicographic ordinal comparison, valid when both operands are in standard
-// form (user-specified property, consistent with Prss). Cross-type arguments
+// form (consistent with Prss). Cross-type arguments
 // throw NotComparable.
 int EpsOmegaSS::compare(const Notation& other) const {
     const EpsOmegaSS* o = dynamic_cast<const EpsOmegaSS*>(&other);

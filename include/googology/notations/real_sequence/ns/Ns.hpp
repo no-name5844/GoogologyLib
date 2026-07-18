@@ -15,8 +15,8 @@ namespace real_sequence {
 // Source: study/notations/Ns.md. Ns is the (n,m)=(2,2) special case of
 // the parameterized family n,m-Ns. The notation names the REAL x = α th NS,
 // an element of an ordinal-indexed real sequence. We keep the expression
-// symbolic (α th NS) and — per the user's "采用累加权重分数来表达" —
-// expose the value as an ACCUMULATED WEIGHT FRACTION of the step terms
+// symbolic (α th NS) and expose the value as an ACCUMULATED WEIGHT FRACTION
+// of the step terms
 // 1/f(β), i.e. int + w1/d1 + w2/d2 + ... (e.g. "2 + 5/11 + 62/111"),
 // where f(β) = n^β for finite β (so each weight is 1). Only FINITE α
 // yields an exact Rational; limit indices need a fundamental sequence and are
@@ -48,15 +48,14 @@ public:
     bool isDefaultParams() const { return n_ == 2 && m_ == 2; }
 
     std::string name() const override { return "ns"; }
-    // Ns is an ordinal-indexed REAL sequence (x = α th NS), NOT an ordinal
-    // notation and NOT a large-number notation. Carved out of `ordinal` on
-    // 2026-07-16 per the user's directive.
+// Ns is an ordinal-indexed REAL sequence (x = α th NS), NOT an ordinal
+// notation and NOT a large-number notation. Carved out of `ordinal`.
     Family family() const override { return Family::RealSequence; }
     std::string subfamily() const override { return "ns"; }
     std::string style() const override { return "real_sequence"; }
 
     // 创造者 / creator: 送到本到 (UTF-8) & nnc (see spec/notations/ns.*.md).
-    // 版本 / version: 1 (base version; 计划模程待最终确认格式).
+    // 版本 / version: 1 (base version).
     std::string creator() const override { return "送到本到, nnc"; }
     std::string version() const override { return "1"; }
 
@@ -69,7 +68,7 @@ public:
     // fraction value is exposed separately (see value() / to_fraction_string()).
     // Delegates to core::Ordinal::expand (§11 pluggable FS); a finite /
     // successor index has no fundamental sequence, so expand throws
-    // UnsupportedOperation (the "can't auto-compute" case the user noted).
+    // UnsupportedOperation (the "can't auto-compute" case).
     Ns& expand(BigInt k) override;
 
     int compare(const Notation& other) const override;
@@ -79,7 +78,7 @@ public:
     // for limit indices (not auto-computed).
     Rational value() const;
     // The accumulated weight-fraction form: int + w1/d1 + w2/d2 + ...
-    // (the user's "累加权重分数"; e.g. "2 + 5/11 + 62/111"). For Ns
+    // (the "累加权重分数" representation; e.g. "2 + 5/11 + 62/111"). For Ns
     // finite α the int part is 0 and each weight is 1 (terms 1/n^β).
     WeightedFractionSum accumulated_weight_fractions() const;
     // Rendered sum, e.g. "1/2 + 1/4" or "2 + 5/11 + 62/111"; "0" for
@@ -94,7 +93,7 @@ public:
     // Returns a natural number (BigInt) for EVERY ordinal α; the recursion
     // terminates because the limit branch reduces α via expand(α,m) < α.
     // For finite α=k this collapses to f(k) = n^k. Exposed publicly
-    // because it is the heart of the notation (user directive 2026-07-18).
+    // because it is the heart of the notation.
     BigInt f(const Ordinal& alpha) const;
     BigInt f(long long alphaInt) const {
         return f(Ordinal::fromInt(static_cast<int>(alphaInt)));

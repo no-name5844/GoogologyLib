@@ -6,7 +6,7 @@
 // exact rational). Limit indices require a fundamental sequence and are NOT
 // auto-computed (see spec/notations/ns.*.md and design.md §11).
 //
-// The user's chosen representation is the ACCUMULATED WEIGHT FRACTION:
+// The representation is the ACCUMULATED WEIGHT FRACTION:
 //   int + w1/d1 + w2/d2 + ...
 // e.g. "2 + 5/11 + 62/111" — an integer part plus a sum of (weight,
 // denominator) terms whose numerators (weights) need NOT be 1.
@@ -57,7 +57,7 @@ private:
 };
 
 // Accumulated weight-fraction form:  int + w1/d1 + w2/d2 + ...
-// (the user's "累加权重分数"; e.g. "2 + 5/11 + 62/111").
+// (the "累加权重分数" representation; e.g. "2 + 5/11 + 62/111").
 // Each term is a (weight, denominator) pair with denominator > 0.
 struct WeightedFractionSum {
     BigInt intPart = 0;                                 // integer part

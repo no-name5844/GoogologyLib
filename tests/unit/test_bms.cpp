@@ -15,7 +15,7 @@ static int g_fail = 0;
 
 static void test_parse_and_standard() {
     BM4 a("(0,0,0)(1,1,1)(2,2,0)");
-    // to_string 输出简写（用户 2026-07-18：末尾尾随零忽略），(0,0,0)->(0)
+    // to_string 输出简写（末尾尾随零忽略），(0,0,0)->(0)
     CHECK(a.to_string() == "(0)(1,1,1)(2,2)");
     CHECK(a.family() == Family::Ordinal);
     CHECK(a.subfamily() == "bms");
@@ -39,7 +39,7 @@ static void test_parse_and_standard() {
 
     // 合法且标准型：(0,0,0)(1,1,1)(2,2,0) 满足 §0.1 合法性，且其值
     // (0)(1,1,1)(2,2) 夹在 limit(4) 与 limit(5) 之间，从该记号系统的
-    // master limit 经有限次 expand 可达 -> 标准型（用户 2026-07-18 明确断言）。
+    // master limit 经有限次 expand 可达 -> 标准型。
     // compare 按值（尾随零不改大小）判定可达性。
     CHECK(a.is_standard() == true);
 
@@ -67,7 +67,7 @@ static void test_single_column() {
 
 static void test_bm4_fs() {
     // back-gear 矩阵 (0,0,0)(1,1,1)(2,2,0)
-    // 用户本会话明确「原本 n=1,2 ↔ lib n=0,1」（整体偏移 1）：
+    // 索引整体偏移 1（spec n=1,2 ↔ lib n=0,1）：
     //   lib expand(k) = spec FS_{k+1} = G + B^(0)+...+B^(k)（k+1 个坏块）。
     //   末列 LNZ z=1，坏根 r=p_1(2)=1；G=列0=(0,0,0)，B=列1=(1,1,1)；
     //   Δ_0 = S_{2,0}-S_{1,0} = 1，Δ_1=0 (k>=z)；故 B^(i)=(1+i,1,1)。

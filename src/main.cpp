@@ -181,8 +181,8 @@ int main() {
 
     // Ns / n,m-Ns demos (by 送到本到 & nnc). The notation names the REAL
     // x = α th NS, an element of an ordinal-indexed real sequence. The
-    // library keeps the expression symbolic (α th NS) and — per the user's
-    // "采用累加分数来表达" — exposes the value as an ACCUMULATED FRACTION
+    // library keeps the expression symbolic (α th NS) and exposes the value
+    // as an ACCUMULATED FRACTION
     // of the step terms 1/f(β), exact only for FINITE α. Limit indices
     // need a fundamental sequence and are NOT auto-computed.
     Ns ns1("1 th NS");

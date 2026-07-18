@@ -18,9 +18,9 @@ using namespace googology::ordinal;
 // normalize() computes the standard form (标准型) via the project's UNIVERSAL
 // standard-form definition (an expression is a legal expression iff obtainable
 // from a limit expression by finitely many expansions + taking a prefix); the
-// user-specified limit expression for both ε_pSS and ε_ωSS is (1, n), so the
+// the limit expression for both ε_pSS and ε_ωSS is (1, n), so the
 // canonical starter is (1, a_2). The article does NOT define compare, but
-// the user specifies the notation admits lexicographic ordinal comparison
+// the notation admits lexicographic ordinal comparison
 // under standard form (consistent with Prss) — see test_compare().
 //
 // NOTE: the article's case 3 (gap a_n = a_br + q) appends (q-1), NOT q.
@@ -98,7 +98,7 @@ static void test_eps_omega_ss() {
     }
 }
 
-// The article does NOT define compare, but per the user's specification the
+// The article does NOT define compare; the library supplies lexicographic
 // notation satisfies lexicographic ordinal comparison under standard form
 // (consistent with Prss). compare() orders two standard sequences
 // lexicographically; cross-type arguments throw NotComparable.
@@ -192,7 +192,7 @@ static void test_indexer_and_normalize() {
 
 // The article leaves br=0 (no element < a_n) undefined. With a_1 = 1 this
 // is reachable only when a_n < a_1, e.g. a decreasing tail A=(1,0)
-// (a_n=0, nothing is < 0). Per the user's instruction we add NO closure;
+// (a_n=0, nothing is < 0). The library adds NO closure;
 // a defensive guard throws. Note: A=(1) is NOT this case — it ends in 1,
 // so it is a successor and is stripped to ().
 static void test_out_of_range_throws() {
