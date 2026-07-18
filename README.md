@@ -122,3 +122,17 @@ std::cout << k.expand(1);     // one rewrite step -> "2 ^ (2 ^^ 2)"
 > This document matches **v0.1.1** (the C++ reference branch). The code is aligned with the
 > design: notations are never evaluated; `expand` / `reduce` return symbolic traces; the
 > capability bitset marks which ops are implemented.
+
+## 开源协议 / License
+
+本项目以 **MIT License** 发布 —— 完全开源、OSI 批准。
+
+- **中文**：任何人可自由使用、复制、修改、合并、发布、再许可及销售本软件，
+  只需在副本中保留上述版权声明与本许可声明。本软件按「原样」提供，不附任何担保。
+- **English**: Distributed under the **MIT License** (fully open source, OSI-approved).
+  Anyone may use, copy, modify, merge, publish, sublicense, and/or sell copies,
+  provided the copyright notice and this permission notice are included. The software
+  is provided "AS IS", without warranty.
+
+完整文本见 [LICENSE](./LICENSE)。各语言分支的源文件可含 SPDX 标识
+`SPDX-License-Identifier: MIT`。
