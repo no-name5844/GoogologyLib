@@ -100,9 +100,12 @@ Prss& Prss::expand(BigInt m) {
         if (an > 0) seq_[static_cast<size_t>(n - 1)] = an - 1; // expand(A,0) = expandLen(A,0)
         return *this;
     }
-    // expand(A, m>0) = expandLen(A, m*L)   per the PrSS article
-    // (0-based: m=0 -> base, m=1 -> base+L elems, ...).
-    BigInt M = m * L;
+    // expand(A, m>0) = expandLen(A, m*L - 1)   per the PrSS article
+    // (article case 1: expand(A,m) = G(⊕_{i=0}^m B); the G segment
+    //  already carries the decremented tail, so the appended count is m*L - 1;
+    //  m=0 -> base (FS_1) is handled by the branch above). Mirrors ε's
+    //  m*L-1 implementation, keeping PrSS/ε symmetric & verbatim.
+    BigInt M = m * L - 1;
     return expandLen_(M);
 }
 
