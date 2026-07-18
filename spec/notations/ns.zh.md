@@ -79,7 +79,7 @@ $$ f(\alpha) = \begin{cases}
 - **模块归属**：已实现于 `ordinal/ns/`，同一模块含 `Ns` 与 `n,m-Ns`（`Ns` 即 $(n,m)=(2,2)$ 特例）。Taxonomy：`family()=Ordinal`、`subfamily()="ns"`、`style()="real_sequence"`。
 - **实数算术（累加权重分数）**：新增 `core/Rational.hpp` 表达精确有理数，并新增 `WeightedFractionSum`（累加权重分数类型：`整数 + w₁/d₁ + w₂/d₂ + …`，如 `2 + 5/11 + 62/111`）。有限下标 $\alpha=k\ge 1$ 的精确值为
   $$a_k = \sum_{\beta=1}^{k-1}\frac{1}{n^{\beta}}$$
-  （$n=2$ 即 Ns；$a_1=0,\;a_2=1/2,\;a_3=3/4,\;a_4=7/8\ldots$；此时整数部为 0、各权值 $w=1$）。极限下标需要基本列、**不自动计算**（见下）。
+  （$n=2$ 即 Ns；$a_1=0,\;a_2=1/2,\;a_3=3/4,\;a_4=7/8\ldots$；此时整数部为 0、各权值 $w=1$）。极限下标需要基本列、**不自动计算**（见下）。分母 $n^\beta$ 即 $f(\beta)$；`f` 已落地为 `Ns` 的**独立公共函数**（spec §1.1/§1.5 完整递归：$f(0)=1,\;f(\beta+1)=f(\beta)\cdot n,\;f(\text{极限}\alpha)=f(\text{expand}(\alpha,m))$，Ns 即 $m=2$ 的 $\text{expand}(\alpha,2)$ 特例），`value` / `accumulated_weight_fractions` 内部统一调用 `f(\beta)` 作为分母**唯一真源**（2026-07-18 落地，用户强调 `f` 最重要）。
 - **基本列来源参数化（§11）**：`expand` 委托 `core::Ordinal::expand`，即项目 §11 的「可插拔基本列来源」。有限 / 后继下标没有基本列，调用 `expand` 抛 `UnsupportedOperation`（正是用户所指「这玩意也不能自动计算」的情形）。
 - **支持的运算**：`FromString` / `ToString`（LaTeX，输出 `α th \mathbb{NS}`）、`Expand`（如上）、`Compare`（直接比 $\alpha$，因 $a_\alpha$ 随 $\alpha$ 严格递增）；`Normalize` / `Successor` 文章未定义，不实现。
 - **Creator / Version**：`creator()="送到本到, nnc"`，`version()="1"`（已按用户确认填入）。

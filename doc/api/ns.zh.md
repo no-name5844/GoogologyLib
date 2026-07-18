@@ -123,6 +123,29 @@ std::string to_fraction_string() const;   // 渲染累加和，如 "1/2 + 1/4"�
 - `value()` / `accumulated_weight_fractions()` / `to_fraction_string()`：**只读**，不改动 `*this`；仅对有限 α 有定义，极限下标 `value()` 抛 `std::domain_error`。
 - 抛出的异常：`compare` 跨类型抛 `NotComparable`；`value()` 对极限下标抛 `std::domain_error`；`string_to_it` 遇非法输入抛解析异常。
 
+### 5.6 核心辅助函数 `f(α)`（spec §1.1 / §1.5）
+
+`f` 是 Ns / n,m-Ns 的**定义性函数**：后继步长即 `1/f(α)`。原文档给出**完整递归定义**，本库已实现为独立公共函数（2026-07-18 落地，用户强调 `f` 最重要）：
+
+```cpp
+BigInt f(const Ordinal& alpha) const;   // 任意序数 α -> 自然数
+BigInt f(long long alphaInt) const;     // 便捷重载：有限下标
+```
+
+定义（与源文章一致）：
+
+| 情形 | 公式 | 实现 |
+|------|------|------|
+| `α = 0` | `f(0) = 1` | `if (a.isZero()) return 1;` |
+| `α = β+1` | `f(β+1) = f(β) · n` | `return f(a.predecessor()) * n_;` |
+| `α` 为极限 | `f(α) = f(expand(α, m))` | `return f(a.expand(m_));` |
+
+- **Ns**（`n=m=2`）：极限分支即 `expand(α, 2)`；
+- **n,m-Ns**：极限分支用参数 `m`（即 `expand(α, m)`）。
+- 对所有序数 `α` 均有定义并终止（极限分支经 `expand(α,m) < α` 递减收敛）。有限 `α=k` 时退化为 `f(k) = n^k`。
+- 例：`Ns().f(0..3)` = `1, 2, 4, 8`；`Ns("ω").f(ω)` = `f(expand(ω,2)) = f(2) = 4`；`Ns(3,2).f(3)` = `27`。
+- `value()` / `accumulated_weight_fractions()` 内部统一调用 `f(β)` 作为分母**唯一真源**。
+
 ---
 
 ## 6. 范例（C++ 用法片段）
@@ -133,12 +156,14 @@ std::string to_fraction_string() const;   // 渲染累加和，如 "1/2 + 1/4"�
 using namespace googology;
 using namespace googology::real_sequence;
 
-// 例 1：有限下标的值（累加权重分数）
+// 例 1：有限下标的值（累加权重分数）+ 核心函数 f(α)
 Ns x("2");                                // α = 2（默认 n=m=2 -> 纯 Ns）
 std::cout << x.to_string() << "\n";       // 表达式 "2 th NS"（LaTeX 风格）
-std::cout << x.to_fraction_string() << "\n"; // 如 "1/2 + 1/4"
-Rational v = x.value();                   // 精确有理数
+std::cout << x.to_fraction_string() << "\n"; // "1/2"（f(1)=2 -> 1/2）
+Rational v = x.value();                   // 精确有理数 "1/2"
 std::cout << v.to_string() << "\n";
+std::cout << x.f(3) << "\n";            // f(3) = 8（f(β+1)=f(β)·2）
+std::cout << Ns("ω").f(Ordinal::parse("ω")) << "\n"; // f(ω)=f(expand(ω,2))=f(2)=4
 
 // 例 2：参数化 n,m-Ns
 Ns y(3, 2, "2");                          // n=3, m=2, α=2

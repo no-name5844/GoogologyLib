@@ -135,11 +135,30 @@ static void test_compare() {
     CHECK(threw);
 }
 
+// --- core auxiliary function f(α) (spec §1.1 / §1.5) ---
+static void test_f() {
+    // Ns (n=2, m=2): f(0)=1, f(k)=2^k, f(ω)=f(expand(ω,2))=f(2)=4
+    CHECK_EQ(Ns().f(0), 1);
+    CHECK_EQ(Ns().f(1), 2);
+    CHECK_EQ(Ns().f(2), 4);
+    CHECK_EQ(Ns().f(3), 8);
+    // limit ordinal ω: expand(ω,2)=2 -> f(ω)=f(2)=4
+    CHECK_EQ(Ns("ω th NS").f(Ordinal::parse("ω")), 4);
+    // n,m-Ns (n=3, m=2): f(k)=3^k, f(ω)=f(expand(ω,2))=f(2)=9
+    Ns nm(3, 2, "1 th NS");
+    CHECK_EQ(nm.f(0), 1);
+    CHECK_EQ(nm.f(1), 3);
+    CHECK_EQ(nm.f(2), 9);
+    CHECK_EQ(nm.f(3), 27);
+    CHECK_EQ(nm.f(Ordinal::parse("ω")), 9);
+}
+
 int main() {
     test_metadata();
     test_expression();
     test_accumulated_fraction();
     test_weighted_fraction();
+    test_f();
     test_expand();
     test_compare();
     if (failures == 0) std::cout << "test_ns: all assertions passed\n";

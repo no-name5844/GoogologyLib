@@ -37,13 +37,24 @@ bool Ns::isFiniteInt_(const Ordinal& a, BigInt& outK) {
 }
 
 Rational Ns::valueFinite_(BigInt k) const {
-    // a_1 = 0; a_{β+1} = a_β + 1/n^β  =>  a_k = sum_{β=1}^{k-1} 1/n^β
+    // a_1 = 0; a_{β+1} = a_β + 1/f(β)  =>  a_k = sum_{β=1}^{k-1} 1/f(β)
     Rational r(0);
     for (BigInt beta = 1; beta < k; ++beta) {
-        Rational step(1, ipow(n_, beta));   // 1 / n^beta
+        Rational step(1, f(Ordinal::fromInt(static_cast<int>(beta))));   // 1 / f(β)
         r += step;
     }
     return r;
+}
+
+BigInt Ns::f(const Ordinal& a) const {
+    // spec §1.1 (Ns, n=m=2) / §1.5 (n,m-Ns):
+    //   f(0)       = 1
+    //   f(β+1)    = f(β) · n
+    //   f(limit α) = f(expand(α, m))        (Ns: m=2 -> expand(α,2))
+    if (a.isZero()) return 1;
+    if (a.isSuccessor()) return f(a.predecessor()) * n_;
+    // limit ordinal: reduce via the (pluggable) fundamental sequence at m.
+    return f(a.expand(static_cast<long long>(m_)));
 }
 
 void Ns::string_to_it(const std::string& s) {
@@ -104,7 +115,7 @@ WeightedFractionSum Ns::accumulated_weight_fractions() const {
     WeightedFractionSum w;
     w.intPart = 0;
     for (BigInt beta = 1; beta < k; ++beta)
-        w.terms.push_back({1, ipow(n_, beta)});  // weight 1, denom n^beta
+        w.terms.push_back({1, f(Ordinal::fromInt(static_cast<int>(beta)))});  // weight 1, denom f(β)
     return w;
 }
 

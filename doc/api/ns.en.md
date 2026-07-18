@@ -123,6 +123,27 @@ std::string to_fraction_string() const;   // rendered sum, e.g. "1/2 + 1/4"; "0"
 - `value()` / `accumulated_weight_fractions()` / `to_fraction_string()`: **read-only**, do not mutate `*this`; defined only for finite α; `value()` throws `std::domain_error` for a limit index.
 - Exceptions: `compare` throws `NotComparable` for cross-type arguments; `value()` throws `std::domain_error` for a limit index; `string_to_it` throws a parse exception on malformed input.
 
+### 5.6 Core auxiliary function `f(α)` (spec §1.1 / §1.5)
+
+`f` is the **defining function** of Ns / n,m-Ns: the successor step is `1/f(α)`. The original document gives a **full recursive definition**; the library implements it as a standalone public function (landed 2026-07-18 at the user's emphasis that `f` is the most important):
+
+```cpp
+BigInt f(const Ordinal& alpha) const;   // any ordinal α -> natural number
+BigInt f(long long alphaInt) const;     // convenience overload: finite index
+```
+
+| Case | Formula | Implementation |
+|------|---------|----------------|
+| `α = 0` | `f(0) = 1` | `if (a.isZero()) return 1;` |
+| `α = β+1` | `f(β+1) = f(β) · n` | `return f(a.predecessor()) * n_;` |
+| `α` limit | `f(α) = f(expand(α, m))` | `return f(a.expand(m_));` |
+
+- **Ns** (`n=m=2`): the limit branch is `expand(α, 2)`;
+- **n,m-Ns**: the limit branch uses parameter `m` (i.e. `expand(α, m)`).
+- Defined and terminating for EVERY ordinal α (the limit branch descends via `expand(α,m) < α`). For finite `α=k` it collapses to `f(k) = n^k`.
+- Examples: `Ns().f(0..3)` = `1, 2, 4, 8`; `Ns("ω").f(ω)` = `f(expand(ω,2)) = f(2) = 4`; `Ns(3,2).f(3)` = `27`.
+- `value()` / `accumulated_weight_fractions()` internally call `f(β)` as the **single source of truth** for the denominator.
+
 ---
 
 ## 6. Examples (C++ snippets)
@@ -133,12 +154,14 @@ std::string to_fraction_string() const;   // rendered sum, e.g. "1/2 + 1/4"; "0"
 using namespace googology;
 using namespace googology::real_sequence;
 
-// Example 1: value of a finite index (accumulated weight fraction)
+// Example 1: value of a finite index (accumulated weight fraction) + core f(α)
 Ns x("2");                                // α = 2 (default n=m=2 -> pure Ns)
 std::cout << x.to_string() << "\n";       // expression "2 th NS" (LaTeX-ish)
-std::cout << x.to_fraction_string() << "\n"; // e.g. "1/2 + 1/4"
-Rational v = x.value();                   // exact rational
+std::cout << x.to_fraction_string() << "\n"; // "1/2" (f(1)=2 -> 1/2)
+Rational v = x.value();                   // exact rational "1/2"
 std::cout << v.to_string() << "\n";
+std::cout << x.f(3) << "\n";            // f(3) = 8 (f(β+1)=f(β)·2)
+std::cout << Ns("ω").f(Ordinal::parse("ω")) << "\n"; // f(ω)=f(expand(ω,2))=f(2)=4
 
 // Example 2: parameterized n,m-Ns
 Ns y(3, 2, "2");                          // n=3, m=2, α=2

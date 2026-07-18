@@ -85,6 +85,20 @@ public:
     // Rendered sum, e.g. "1/2 + 1/4" or "2 + 5/11 + 62/111"; "0" for
     // the first element.
     std::string to_fraction_string() const;
+
+    // --- core auxiliary function f(α) (spec §1.1 / §1.5) ---
+    // THE defining function of Ns: the successor step term is 1/f(α).
+    //   f(0)       = 1
+    //   f(β+1)    = f(β) · n
+    //   f(limit α) = f(expand(α, m))      (Ns: m=2 -> expand(α,2))
+    // Returns a natural number (BigInt) for EVERY ordinal α; the recursion
+    // terminates because the limit branch reduces α via expand(α,m) < α.
+    // For finite α=k this collapses to f(k) = n^k. Exposed publicly
+    // because it is the heart of the notation (user directive 2026-07-18).
+    BigInt f(const Ordinal& alpha) const;
+    BigInt f(long long alphaInt) const {
+        return f(Ordinal::fromInt(static_cast<int>(alphaInt)));
+    }
 };
 
 } // namespace real_sequence
