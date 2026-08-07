@@ -2,7 +2,7 @@
 
 > 中文 | English
 >
-> 本仓库以多语言分支（C / C++ / java / python / Lean4）分别实现同一套逻辑骨架；
+> 本仓库以多语言分支（ C / C++ / java / python / Lean4）分别实现同一套逻辑骨架；
 > `master` 存放与语言无关的规格 `spec/` 与黄金测试向量 `tests/vectors/`。
 >
 > This repository implements one logical skeleton across multiple language branches
