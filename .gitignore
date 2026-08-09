@@ -1,0 +1,10 @@
+# C build artifacts
+build/
+CMakeFiles/
+CMakeCache.txt
+*.o
+*.a
+*.dll
+*.dll.a
+*.exe
+*.so
