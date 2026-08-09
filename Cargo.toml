@@ -1,0 +1,11 @@
+[package]
+name = "googology"
+version = "0.2.0"
+edition = "2024"
+description = "Multi-language Notation Collection Library — Rust branch"
+
+[dependencies]
+
+[lib]
+name = "googology"
+path = "src/lib.rs"
