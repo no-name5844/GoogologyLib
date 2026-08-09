@@ -1,0 +1,1 @@
+# GoogologyLib — Multi-language Notation Collection Library (Python branch)
