@@ -1,0 +1,9 @@
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+.cache/
+.vscode/
+.workbuddy/
+*.cache
+*.log
