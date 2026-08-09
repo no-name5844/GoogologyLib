@@ -1,0 +1,6 @@
+# Maven build artifacts
+target/
+*.class
+*.jar
+*.war
+*.log
