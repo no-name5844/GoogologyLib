@@ -1,0 +1,12 @@
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.GeneratedMSBuildEditorConfig.editorconfig
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.AssemblyInfoInputs.cache
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.AssemblyInfo.cs
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.csproj.CoreCompileInputs.cache
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.sourcelink.json
+G:\4\ord\GoogologyLib\src\GoogologyLib\bin\Debug\net10.0\GoogologyLib.deps.json
+G:\4\ord\GoogologyLib\src\GoogologyLib\bin\Debug\net10.0\GoogologyLib.dll
+G:\4\ord\GoogologyLib\src\GoogologyLib\bin\Debug\net10.0\GoogologyLib.pdb
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.dll
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\refint\GoogologyLib.dll
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\GoogologyLib.pdb
+G:\4\ord\GoogologyLib\src\GoogologyLib\obj\Debug\net10.0\ref\GoogologyLib.dll

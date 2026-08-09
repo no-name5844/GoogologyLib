@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GoogologyLib/GoogologyLib.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GoogologyLib.Tests/GoogologyLib.Tests.csproj" />
+  </Folder>
+</Solution>
