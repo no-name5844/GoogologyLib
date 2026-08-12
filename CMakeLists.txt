@@ -18,6 +18,7 @@ add_library(googology
   src/notations/number/conway/Conway.cpp
   src/notations/ordinal/sequence/difference/prss/Prss.cpp
   src/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.cpp
+  src/notations/ordinal/sequence/marked_parent/pps/PPS.cpp
   src/notations/ordinal/veblen/weakveblen/WeakVeblen.cpp
   src/notations/real_sequence/ns/Ns.cpp
   src/notations/ordinal/matrix/bms/BMS.cpp
@@ -39,6 +40,9 @@ target_link_libraries(test_prss PRIVATE googology)
 add_executable(test_epspss tests/unit/test_epspss.cpp)
 target_link_libraries(test_epspss PRIVATE googology)
 
+add_executable(test_pps tests/unit/test_pps.cpp)
+target_link_libraries(test_pps PRIVATE googology)
+
 add_executable(test_weakveblen tests/unit/test_weakveblen.cpp)
 target_link_libraries(test_weakveblen PRIVATE googology)
 
@@ -56,6 +60,7 @@ add_test(NAME test_knuth COMMAND test_knuth)
 add_test(NAME test_conway COMMAND test_conway)
 add_test(NAME test_prss COMMAND test_prss)
 add_test(NAME test_epspss COMMAND test_epspss)
+add_test(NAME test_pps COMMAND test_pps)
 add_test(NAME test_weakveblen COMMAND test_weakveblen)
 add_test(NAME test_ns COMMAND test_ns)
 add_test(NAME test_standard_form COMMAND test_standard_form)

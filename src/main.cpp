@@ -7,6 +7,7 @@
 #include "googology/notations/number/conway/Conway.hpp"
 #include "googology/notations/ordinal/sequence/difference/prss/Prss.hpp"
 #include "googology/notations/ordinal/sequence/difference/epsilon_ss/EpsilonSS.hpp"
+#include "googology/notations/ordinal/sequence/marked_parent/pps/PPS.hpp"
 #include "googology/notations/ordinal/veblen/weakveblen/WeakVeblen.hpp"
 #include "googology/notations/real_sequence/ns/Ns.hpp"
 
@@ -67,6 +68,12 @@ int main() {
     registry().add("prss", [] { return std::make_unique<Prss>(); });
     registry().add("epsilon_p_ss", [] { return std::make_unique<EpspSS>(); });
     registry().add("epsilon_omega_ss", [] { return std::make_unique<EpsOmegaSS>(); });
+    registry().add("pps1", [] { return std::make_unique<Pps1>(); });
+    registry().add("pps2", [] { return std::make_unique<Pps2>(); });
+    registry().add("pps4", [] { return std::make_unique<Pps4>(); });
+    registry().add("wpps4", [] { return std::make_unique<WPps4>(); });
+    registry().add("tpps4", [] { return std::make_unique<TPps4>(); });
+    registry().add("fpps4", [] { return std::make_unique<FPps4>(); });
     registry().add("weak_veblen", [] { return std::make_unique<WeakVeblen>(); });
     registry().add("ns", [] { return std::make_unique<Ns>(); });
 
