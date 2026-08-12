@@ -1,0 +1,25 @@
+# Editor & tool caches
+.vscode/
+.workbuddy/
+.cache/
+*.cache
+*.log
+
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# Lean4 / Lake build artifacts
+lake-packages/
+.lake/
+build/
+*.olean
+*.ilean
+*.c
+*.h
+*.o
+
+# Lean4 tmp caches
+*.tmp.c
+*.tmp.h
