@@ -23,29 +23,24 @@ namespace Capabilities
 /-- Create empty capabilities. -/
 def empty : Capabilities := { bits := 0 }
 
+/-- Single-bit mask for an operation. -/
+def bitOf (op : Op) : UInt8 :=
+  match op with
+  | Op.fromString => 1
+  | Op.toString => 2
+  | Op.normalize => 4
+  | Op.compare => 8
+  | Op.expand => 16
+  | Op.expandTo => 32
+  | Op.successor => 64
+
 /-- Set a capability bit. -/
 def set (c : Capabilities) (op : Op) : Capabilities :=
-  let bit : UInt8 := 1 << match op with
-    | Op.fromString => 0
-    | Op.toString => 1
-    | Op.normalize => 2
-    | Op.compare => 3
-    | Op.expand => 4
-    | Op.expandTo => 5
-    | Op.successor => 6
-  { c with bits := c.bits ||| bit }
+  { c with bits := c.bits ||| bitOf op }
 
 /-- Check if a capability is supported. -/
 def has (c : Capabilities) (op : Op) : Bool :=
-  let bit : UInt8 := 1 << match op with
-    | Op.fromString => 0
-    | Op.toString => 1
-    | Op.normalize => 2
-    | Op.compare => 3
-    | Op.expand => 4
-    | Op.expandTo => 5
-    | Op.successor => 6
-  (c.bits &&& bit) != 0
+  (c.bits &&& bitOf op) != 0
 
 instance : ToString Capabilities where
   toString c := s!"Capabilities({c.bits})"

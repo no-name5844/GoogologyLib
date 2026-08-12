@@ -56,15 +56,14 @@ class Notation (α : Type) where
   comparable (a : α) : Bool := (capabilities a).has Op.compare
 
   reduce (a : α) : α :=
-    let prev := toLatex a
-    go a prev 0
-  where
-    go (cur : α) (prev : String) (i : Nat) : α :=
-      if i ≥ 1000 then cur
-      else
+    let rec go (n : Nat) (cur : α) (prev : String) : α :=
+      match n with
+      | 0 => cur
+      | n + 1 =>
         let next := expand cur 1
         let curS := toLatex next
         if curS = prev then next
-        else go next curS (i + 1)
+        else go n next curS
+    go 1000 a (toLatex a)
 
 end Googology
