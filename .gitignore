@@ -1,3 +1,22 @@
-# Rust build artifacts
+# Editor & tool caches
+.vscode/
+.workbuddy/
+.cache/
+*.cache
+*.log
+
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# Rust / Cargo build artifacts
 target/
 Cargo.lock
+
+# Rust incremental compilation cache
+# (covered by target/ already)
+
+# Rust editor / IDE
+*.rs.bk
+.rustc_hash
