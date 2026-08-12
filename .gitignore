@@ -1,10 +1,29 @@
-# C build artifacts
+# Editor & tool caches
+.vscode/
+.workbuddy/
+.cache/
+*.cache
+*.log
+
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# C / CMake build artifacts
 build/
 CMakeFiles/
 CMakeCache.txt
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+cmake_install.cmake
 *.o
+*.obj
 *.a
+*.lib
 *.dll
 *.dll.a
-*.exe
 *.so
+*.dylib
+*.exe
+*.out
