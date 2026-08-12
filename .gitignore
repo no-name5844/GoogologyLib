@@ -1,6 +1,39 @@
-# Maven build artifacts
+# Editor & tool caches
+.vscode/
+.workbuddy/
+.cache/
+*.cache
+*.log
+
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# Java / Maven build artifacts
 target/
 *.class
 *.jar
 *.war
-*.log
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+replay_pid*
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Eclipse / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+.factorypath
+.classpath
+.project
+.settings/
