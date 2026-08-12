@@ -1,6 +1,30 @@
-# .NET build artifacts
+# Editor & tool caches
+.vscode/
+.workbuddy/
+.cache/
+*.cache
+*.log
+
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# .NET / C# build artifacts
 bin/
 obj/
 *.user
 *.suo
-*.cache
+*.csproj.user
+*.resources
+*.pdb
+*.dll
+*.exe
+*.mdb
+*.opendb
+*.VC.db
+*.nupkg
+*.snupkg
+project.lock.json
+project.assets.json
+packages/
