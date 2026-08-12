@@ -120,6 +120,7 @@ impl Knuth {
 }
 
 impl Notation for Knuth {
+    fn as_any(&self) -> &dyn std::any::Any { self }
     fn name(&self) -> &str { "knuth" }
     fn family(&self) -> Family { Family::Number }
     fn creator(&self) -> &str { "Donald Knuth" }

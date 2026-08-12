@@ -61,6 +61,9 @@ pub trait Notation: fmt::Display {
         self.capabilities().has(op)
     }
 
+    /// Downcast support (needed by ordinal comparisons).
+    fn as_any(&self) -> &dyn std::any::Any;
+
     // --- string conversion ---
     fn string_to_it(&mut self, _s: &str) -> Result<(), String> {
         Err(UnsupportedOperation { name: self.name().to_string(), op: Op::FromString }.to_string())

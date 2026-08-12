@@ -116,6 +116,7 @@ impl Conway {
 }
 
 impl Notation for Conway {
+    fn as_any(&self) -> &dyn std::any::Any { self }
     fn name(&self) -> &str { "conway" }
     fn family(&self) -> Family { Family::Number }
     fn creator(&self) -> &str { "John Conway" }
