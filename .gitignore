@@ -1,24 +1,33 @@
-# Cache
-__pycache__/
-*.pyc
-*.pyo
-.cache/
+# Editor & tool caches
 .vscode/
 .workbuddy/
+.cache/
 *.cache
 *.log
 
-# Build artifacts
+# Python caches (shared workspace)
+__pycache__/
+*.pyc
+*.pyo
+
+# Generic build artifacts (shared workspace crosstalk)
+build/
+target/
 bin/
 obj/
-*.class
-*.jar
+*.o
+*.obj
+*.a
+*.lib
 *.dll
 *.pdb
-target/
-build/
+*.class
+*.jar
+*.so
+*.dylib
+*.exe
+*.out
 
-# Other language directories (leftovers from other branches)
-boost/
-src/
-tests/
+# Shared package build caches
+CMakeFiles/
+CMakeCache.txt
