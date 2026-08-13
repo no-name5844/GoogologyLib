@@ -20,6 +20,8 @@ inductive KNode : Type where
   | arrow : (base : GoogInt) → (height : GoogInt) → (exp : KNode) → KNode
   deriving Repr
 
+instance : Inhabited KNode := ⟨KNode.value 0⟩
+
 namespace KNode
 
 /-- Render a Knuth AST node as LaTeX. -/
@@ -28,7 +30,7 @@ def tex : KNode → String
   | .arrow base height exp =>
     let bt := toString base
     let et := tex exp
-    let arr := if height = 1 then "\\uparrow" else s!"\\uparrow^{{{height}}}"
+    let arr := if height = 1 then "\\uparrow" else "\\uparrow^{" ++ height.repr ++ "}"
     match exp with
     | .arrow _ _ _ => s!"{bt} {arr} ({et})"
     | _ => s!"{bt} {arr} {et}"
@@ -44,25 +46,29 @@ def step : KNode → KNode
       .arrow base (height - 1) inner
   | .arrow base height exp => .arrow base height (step exp)
 
-/-- Parse a string into a Knuth AST node. -/
-def parse (s : String) : KNode :=
-  let s := s.trim
-  if let some pos := s.find (· = '^') then
-    let a := (s.extract 0 pos).toInt!.getD 0
-    let rest := s.extract pos s.length
+/-- Parse a string into a Knuth AST node. Partial: recursion over a
+    strictly shorter suffix terminates at runtime (no termination proof). -/
+partial def parse (s : String) : KNode :=
+  let s := (String.trimAscii s).toString
+  let posIdx := s.toList.findIdx (· = '^')
+  if posIdx < s.length then
+    let a := (s.take posIdx).toInt?.getD 0
+    let rest := (s.drop posIdx).toString
     let (c, rest') := countArrows rest
-    let rest'' := rest'.trim
+    let rest'' := (String.trimAscii rest').toString
     if rest''.isEmpty then .value 0 -- fallback
     else .arrow a c (parse rest'')
   else
-    .value (s.toInt!.getD 0)
+    .value (s.toInt?.getD 0)
 where
   countArrows (s : String) : GoogInt × String :=
-    let rec go (i : Nat) (cnt : GoogInt) : GoogInt × String :=
-      if i ≥ s.length then (cnt, "")
-      else if s.get i = '^' then go (i + 1) (cnt + 1)
-      else (cnt, s.extract i s.length)
-    go 0 0
+    let rec go (cnt : GoogInt) (cs : List Char) : GoogInt × String :=
+      match cs with
+      | [] => (cnt, "")
+      | c :: rest =>
+        if c = '^' then go (cnt + 1) rest
+        else (cnt, String.ofList rest)
+    go 0 s.toList
 
 end KNode
 
@@ -101,19 +107,22 @@ instance : Notation Knuth where
   toLatex k := k.root.tex
 
   expand k n :=
-    let rec go (node : KNode) (i : GoogInt) : KNode :=
-      if i ≤ 0 then node
-      else go (node.step) (i - 1)
-    { k with root := go k.root n }
+    let rec expandGo (node : KNode) (i : Nat) : KNode :=
+      if i = 0 then node
+      else expandGo (node.step) (i - 1)
+    { k with root := expandGo k.root n.toNat }
 
   expandTo k len :=
-    let rec go (cur : Knuth) (prev : String) : Knuth :=
+    let rec expandToGo (n : Nat) (cur : Knuth) (prev : String) : Knuth :=
       if prev.length ≥ len then cur
+      else if n = 0 then cur
       else
         let next : Knuth := { root := cur.root.step }
         let curS := next.root.tex
         if curS = prev then next
-        else go next curS
-    go k (k.root.tex)
+        else expandToGo (n - 1) next curS
+    expandToGo 1000 k (k.root.tex)
+
+  reduce k := k  -- placeholder (Knuth step may not stabilize; no-op)
 
 end Googology

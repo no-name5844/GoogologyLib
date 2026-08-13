@@ -2,6 +2,10 @@
 序数记号语义（denotation）：记号表达式 → 它代表的序数。
 基于 core/Ordinal.lean 的 MOrdinal（mathlib Ordinal）作语义值。
 
+⚠ 本文件**依赖 mathlib**（Mathlib.SetTheory.Ordinal.*，经 core/Ordinal.lean
+引入；MOrdinal = mathlib 的 Ordinal）。构建需 lakefile 中的 mathlib
+依赖（v4.30.0-rc2）。记号层（Prss.lean / Pps.lean 等）不依赖 mathlib。
+
 定义（三分支递归）：
   ord(0)       = 0
   ord(后继 A)  = ord(前驱 A) + 1

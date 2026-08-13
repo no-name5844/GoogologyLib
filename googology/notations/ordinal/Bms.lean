@@ -70,13 +70,11 @@ namespace BMS
 
 /- Raw height of column x; out-of-bounds -> 0. -/
 def colHeight (b : BMS) (x : Nat) : Nat :=
-  match b.cols.get? x with | some c => c.length | none => 0
+  (b.cols.getD x []).length
 
 /- S_{x,y}; out-of-bounds -> 0. -/
 def get (b : BMS) (x y : Nat) : GoogInt :=
-  match b.cols.get? x with
-  | none => 0
-  | some col => match col.get? y with | some v => v | none => 0
+  (b.cols.getD x []).getD y 0
 
 /- Value height: drop trailing zeros, minimum 1 so a pure zero column still
     renders as "(0)". -/
@@ -111,12 +109,37 @@ def lastColAllZero (b : BMS) : Bool := b.lnzRow < 0
 
 /-! ===== Variant hooks (BM4 default, BM1/BM3_3 override) ===== -/
 
-/-- Generic parentOf implementation. BM4 rule:
-      p_k(m) = max p<m with S[p,k] < S[m,k] AND (k=0 OR ascensionDegree(k-1,m,p))
-    BM1: drop the "ascensionDegree(k-1,m,p)" guard.
-    BM3_3: same as BM4 (parentOf not overridden there; only ascensionDegree is).
--/
-def parentOf (b : BMS) (k m : Nat) : Int :=
+/-! parentOf / ascensionDegree / ascensionDegreeBM4 are mutually recursive
+    (parentOf checks ascensionDegree; ascensionDegree walks parentOf). -/
+mutual
+
+partial def ascensionDegreeBM4 (b : BMS) (k m t : Nat) : Bool :=
+  if m = t then true
+  else
+    let rec loop (cur : Nat) (guard : Nat) : Bool :=
+      if guard = 0 then false
+      else
+        let p := b.parentOf k cur
+        if p < 0 ∨ p.toNat = cur then false
+        else
+          let pn := p.toNat
+          if pn = t then true else loop pn (guard - 1)
+    loop m 100000
+
+partial def ascensionDegree (b : BMS) (k m t : Nat) : Bool :=
+  match b.kind with
+  | BmsKind.bm1 => ascensionDegreeBM4 b 0 m t   -- unified by row 0
+  | BmsKind.bm33 =>
+    if m = t then true
+    else
+      let p := b.parentOf k m
+      if p < 0 ∨ p.toNat = m then false
+      else
+        let pn := p.toNat
+        ascensionDegreeBM4 b k pn t ∧ pn > t   -- note: t here is bad root r
+  | BmsKind.bm4 => ascensionDegreeBM4 b k m t
+
+partial def parentOf (b : BMS) (k m : Nat) : Int :=
   let rec go (p : Nat) (best : Int) : Int :=
     if p ≥ m then best
     else
@@ -130,6 +153,7 @@ def parentOf (b : BMS) (k m : Nat) : Int :=
       else go (p + 1) best
   go 0 (-1)
 
+end
 /-- Generic ascensionDegree: does column m have t as an ancestor under its
     row-k parent chain (∃ c : (p_k)^c (m) = t)?
     BM4 default: iterate parentOf(k,·) walking the chain.
@@ -137,32 +161,6 @@ def parentOf (b : BMS) (k m : Nat) : Int :=
     BM3_3: recursive clause a_{k,m}=1 ⇔ a_{k,parent(m)}=1 ∧ parent(m) > t,
            plus base case m==t → 1.
 -/
-partial def ascensionDegree (b : BMS) (k m t : Nat) : Bool :=
-  match b.kind with
-  | BmsKind.bm1 => b.ascensionDegreeBM4 0 m t   -- unified by row 0
-  | BmsKind.bm33 =>
-    if m = t then true
-    else
-      let p := b.parentOf k m
-      if p < 0 ∨ p.toNat = m then false
-      else
-        let pn := p.toNat
-        b.ascensionDegreeBM4 k pn t ∧ pn > t   -- note: t here is bad root r
-  | BmsKind.bm4 => b.ascensionDegreeBM4 k m t
-where
-  ascensionDegreeBM4 (k m t : Nat) : Bool :=
-    if m = t then true
-    else
-      let rec loop (cur : Nat) (guard : Nat) : Bool :=
-        if guard = 0 then false
-        else
-          let p := b.parentOf k cur
-          if p < 0 ∨ p.toNat = cur then false
-          else
-            let pn := p.toNat
-            if pn = t then true else loop pn (guard - 1)
-      loop m 100000
-
 /- Bad root r = p_z(X-1) where z = lnzRow_; -1 when no lnz. -/
 def badRoot (b : BMS) : Int :=
   let z := b.lnzRow
@@ -204,7 +202,7 @@ def padToRect (cols : List (List GoogInt)) : List (List GoogInt) :=
   cols.map fun c => c ++ List.replicate (maxH - c.length) 0
 
 /-! Expand skeleton (C++ §0.2.2): produce FS_n(S). -/
-private def expandToFS (b : BMS) (n : GoogInt) : BMS :=
+private partial def expandToFS (b : BMS) (n : GoogInt) : BMS :=
   let X := b.numCols
   if X = 0 then
     -- expand((), n) = () treated as 0 value; cols cleared.
@@ -226,15 +224,16 @@ private def expandToFS (b : BMS) (n : GoogInt) : BMS :=
           if X' = 0 then cols
           else
             -- recalc local lnzRow
-            let lastCol := cols.get! (X' - 1)
+            let lastCol := cols.getD (X' - 1) []
             let findLnz (c : List GoogInt) : Int :=
-              c.enum.foldl (init := -1) fun best (y, v) =>
+              (List.range c.length).zip c |>.foldl (init := -1) fun best (y, v) =>
                 if v > 0 then y else best
             let z' := findLnz lastCol
             if z' < 0 then cols
             else
+              let zIdx : Nat := z'.toNat
               let newLastCol : List GoogInt :=
-                lastCol.modifyN z'.toNat (fun v => v - 1)
+                lastCol.take zIdx ++ [lastCol.getD zIdx 0 - 1] ++ lastCol.drop (zIdx + 1)
               -- check column now all zeros?
               let nowZero := newLastCol.all (· = 0)
               let cols2 :=
@@ -267,7 +266,7 @@ private def expandToFS (b : BMS) (n : GoogInt) : BMS :=
       { b with cols := padToRect newCols }
 
 /-! Limit expressions (§0.3, version-agnostic, BM4-kind under the hood).-/
-def limit (n : GoogInt) : BMS :=
+partial def limit (n : GoogInt) : BMS :=
   let mk : BMS := { kind := BmsKind.bm4, isMasterLimit := false, cols := [] }
   if n ≤ 0 then mk
   else
@@ -288,15 +287,14 @@ def toString (b : BMS) : String :=
   if b.isMasterLimit then "(0)(1,1,1,…)"
   else
     let rec colStr (x : Nat) : String :=
-      match b.cols.get? x with
-      | none => ""
-      | some c =>
+      if x ≥ b.numCols then ""
+      else
         let h := b.valHeight x
         let rec rowsStr (y : Nat) (acc : String) : String :=
           if y ≥ h then acc
           else
             let sep := if y = 0 then "" else ","
-            rowsStr (y + 1) (acc ++ sep ++ toString (b.get x y))
+            rowsStr (y + 1) (acc ++ sep ++ (b.get x y).repr)
         s!"({rowsStr 0 ""})"
     let rec loop (x : Nat) (acc : String) : String :=
       if x ≥ b.numCols then acc
@@ -312,56 +310,56 @@ def toLatex (b : BMS) : String :=
     let rec renderCol (col : List GoogInt) : String :=
       match col with
       | [] => ""
-      | [v] => toString v
-      | v :: vs => s!"{toString v} \\\\ {renderCol vs}"
+      | v :: [] => v.repr
+      | v :: vs => s!"{v.repr} \\\\ {renderCol vs}"
     let colLatex (c : List GoogInt) : String :=
       if c.length = 1 then renderCol c
-      else s!"\\begin{{pmatrix}} {renderCol c} \\end{{pmatrix}}"
+      else ("\\begin{pmatrix} " ++ renderCol c ++ " \\end{pmatrix}")
     let rec loop (x : Nat) (acc : String) : String :=
       if x ≥ b.numCols then acc
       else
-        match b.cols.get? x with
-        | none => acc
-        | some cRaw =>
-          let h := b.valHeight x
-          let c := cRaw.take h
-          loop (x + 1) (acc ++ colLatex c)
+        let cRaw := b.cols.getD x []
+        let h := b.valHeight x
+        let c := cRaw.take h
+        loop (x + 1) (acc ++ colLatex c)
     loop 0 ""
 
 /-! Parsing: "(a,b)(c,d,e)…"  -> columns, resize to rect. -/
-def stringToIt (s : String) : BMS :=
-  let rec parseCol (inner : Substring) : List GoogInt :=
+partial def stringToIt (s : String) : BMS :=
+  let rec parseCol (inner : String) : List GoogInt :=
     if inner.isEmpty then []
     else
-      let parts := inner.toString.splitOn ","
+      let parts := inner.splitOn ","
       parts.filterMap fun p =>
-        let trimmed := p.trim
+        let trimmed := p.trimAscii
         if trimmed.isEmpty then none
-        else some (trimmed.toInt!.getD 0)
-  let rec parse (t : Substring) (acc : List (List GoogInt)) : List (List GoogInt) :=
-    if t.isEmpty then acc.reverse
+        else some ((trimmed.toString).toInt?.getD 0)
+  let rec parse (str : String) (acc : List (List GoogInt)) : List (List GoogInt) :=
+    if str.isEmpty then acc.reverse
     else
-      let t' := t.dropWhile (· = ' ')
-      if not (t'.startsWith "(") then acc.reverse
+      let cs := str.toList
+      let openIdx := cs.findIdx (· = '(')
+      if openIdx ≥ cs.length then acc.reverse
       else
-        let rest := (t'.drop 1)
-        match rest.find (· = ')') with
-        | none => acc.reverse
-        | some j =>
-          let inner := rest.extract 0 j
-          let after := rest.extract (j + 1) rest.endPos
+        let restCs := cs.drop (openIdx + 1)
+        let closeIdx := restCs.findIdx (· = ')')
+        if closeIdx ≥ restCs.length then acc.reverse
+        else
+          let inner := String.ofList (restCs.take closeIdx)
           let col := parseCol inner
+          let after := String.ofList (restCs.drop (closeIdx + 1))
           parse after (col :: acc)
-  let t := (s.replace " " "").toSubstring
+  let t := s.replace " " ""
   { cols := padToRect (parse t []), isMasterLimit := false, kind := BmsKind.bm4 }
 
 /-! Compare (column-major lex order on valHeight-trimmed). -/
-def compare (a b : BMS) : Int :=
+partial def compare (a b : BMS) : Int :=
   if a.isMasterLimit ∨ b.isMasterLimit then
     match a.isMasterLimit, b.isMasterLimit with
     | true, true => 0
     | true, false => 1
     | false, true => -1
+    | false, false => 0
   else
     let X := max a.numCols b.numCols
     let rec colLoop (x : Nat) : Int :=
@@ -392,7 +390,7 @@ def expand (b : BMS) (n : GoogInt) : BMS :=
     expandToFS b n
 
 /-! expandTo (repeat step until length ≥ len; matches other notations). -/
-def expandTo (b : BMS) (len : GoogInt) : BMS :=
+partial def expandTo (b : BMS) (len : GoogInt) : BMS :=
   let rec go (cur : BMS) (prev : String) : BMS :=
     if prev.length ≥ len.toNat then cur
     else
@@ -494,6 +492,7 @@ instance : Notation BMS where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a other := a.compare other
+  reduce x := x  -- placeholder idempotence
 
 instance : Notation BM1 where
   name _ := "bm1"
@@ -517,6 +516,7 @@ instance : Notation BM1 where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a other := a.compare other
+  reduce x := x  -- placeholder idempotence
 
 instance : Notation BM3_3 where
   name _ := "bm3.3"
@@ -540,5 +540,6 @@ instance : Notation BM3_3 where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a other := a.compare other
+  reduce x := x  -- placeholder idempotence
 
 end Googology

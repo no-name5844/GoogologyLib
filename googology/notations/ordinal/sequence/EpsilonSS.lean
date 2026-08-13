@@ -57,22 +57,10 @@ def rightmostLess (seq : List GoogInt) (an : GoogInt) : Int :=
 
 /- Strip outer brackets / whitespace for parsing. -/
 def stripOuter (s : String) : String :=
-  let noSpace := s.filter (· ≠ ' ')
-  let rec dropFront (t : String) : String :=
-    if !t.isEmpty ∧ (t.front = '(' ∨ t.front = '[' ∨ t.front = '{')
-    then dropFront (t.drop 1) else t
-  let front := dropFront noSpace
-  let rec dropBack (cs : List Char) : List Char :=
-    match cs with
-    | [] => []
-    | cs =>
-      match cs.reverse with
-      | [] => []
-      | last :: rinit =>
-        if last = ')' ∨ last = ']' ∨ last = '}'
-        then dropBack rinit.reverse
-        else cs
-  String.mk (dropBack front.data)
+  let cs := s.toList.filter (· ≠ ' ')
+  let cs1 := cs.dropWhile (fun c => c = '(' ∨ c = '[' ∨ c = '{')
+  let tail := cs1.reverse.dropWhile (fun c => c = ')' ∨ c = ']' ∨ c = '}')
+  String.ofList tail.reverse
 
 def parseSeq (s : String) : List GoogInt :=
   let t := stripOuter s
@@ -80,12 +68,12 @@ def parseSeq (s : String) : List GoogInt :=
   else
     let parts := t.splitOn ","
     parts.filterMap fun p =>
-      let trimmed := p.trim
+      let trimmed := p.trimAscii
       if trimmed.isEmpty then none
-      else some (trimmed.toInt!.getD 0)
+      else some (trimmed.toInt?.getD 0)
 
 def toString (seq : List GoogInt) : String :=
-  let parts := seq.map toString
+  let parts := seq.map (fun v : GoogInt => v.repr)
   s!"({String.intercalate ", " parts})"
 
 /- Expand helper — EpspSS case split with `pC` cap. -/
@@ -108,21 +96,17 @@ def expandLenEpsp (seq : List GoogInt) (pC : GoogInt) (M : GoogInt) : List GoogI
         let q := an - a_br
         -- step 0: decrement last
         let seq0 := seq.set (seq.length - 1) (an - 1)
-        let rec loop (s : Int) (running : List GoogInt) : List GoogInt :=
-          if s > M then running
+        let seq1 := (List.range M.toNat).foldl (fun running s =>
+          let s1 : Int := Int.ofNat (s + 1)
+          let (pos1, add) :=
+            if q = 1 then (s1 + n - L, 0)
+            else if q ≤ pC then (n + s1 - 1, q - 1)
+            else (n + s1 - 1, pC)
+          if pos1 < 1 ∨ pos1 > running.length then running
           else
-            let pos1 : Int; let add : GoogInt
-            if q = 1 then
-              pos1 := s + n - L; add := 0
-            else if q ≤ pC then
-              pos1 := n + s - 1; add := q - 1
-            else
-              pos1 := n + s - 1; add := pC
-            if pos1 < 1 ∨ pos1 > running.length then running
-            else
-              let elem := running.get! (pos1.toNat - 1)
-              loop (s + 1) (running ++ [elem + add])
-        loop 1 seq0
+            let elem := running.getD (pos1.toNat - 1) 0
+            running ++ [elem + add]) seq0
+        seq1
 
 /- Expand helper — EpsOmegaSS (no p, no case 4). -/
 def expandLenOmega (seq : List GoogInt) (M : GoogInt) : List GoogInt :=
@@ -141,19 +125,16 @@ def expandLenOmega (seq : List GoogInt) (M : GoogInt) : List GoogInt :=
         let a_br := seq.getD (br1.toNat - 1) 0
         let q := an - a_br
         let seq0 := seq.set (seq.length - 1) (an - 1)
-        let rec loop (s : Int) (running : List GoogInt) : List GoogInt :=
-          if s > M then running
+        let seq1 := (List.range M.toNat).foldl (fun running s =>
+          let s1 : Int := Int.ofNat (s + 1)
+          let (pos1, add) :=
+            if q = 1 then (s1 + n - L, 0)
+            else (n + s1 - 1, q - 1)
+          if pos1 < 1 ∨ pos1 > running.length then running
           else
-            let pos1 : Int; let add : GoogInt
-            if q = 1 then
-              pos1 := s + n - L; add := 0
-            else
-              pos1 := n + s - 1; add := q - 1
-            if pos1 < 1 ∨ pos1 > running.length then running
-            else
-              let elem := running.get! (pos1.toNat - 1)
-              loop (s + 1) (running ++ [elem + add])
-        loop 1 seq0
+            let elem := running.getD (pos1.toNat - 1) 0
+            running ++ [elem + add]) seq0
+        seq1
 
 /- Common expand (master_limit redirects). -/
 def expandEpsp (b : EpspSS) (m : GoogInt) : EpspSS :=
@@ -204,7 +185,8 @@ def expandOmega (b : EpsOmegaSS) (m : GoogInt) : EpsOmegaSS :=
 /- Lexicographic sequence compare, master_limit is supremum. -/
 def compareSeq (seqa seqb : List GoogInt) (mla mlb : Bool) : Int :=
   if mla ∨ mlb then
-    match mla, mlb with | true, true => 0 | true, false => 1 | false, true => -1
+    match mla, mlb with
+      | true, true => 0 | true, false => 1 | false, true => -1 | false, false => 0
   else
     let n1 := seqa.length; let n2 := seqb.length; let m := min n1 n2
     let rec loop (i : Nat) : Int :=
@@ -236,7 +218,7 @@ def index (b : EpspSS) (n : GoogInt) : EpspSS := expand b n
 
 def isSuccessor (b : EpspSS) : Bool :=
   if b.isMasterLimit then false
-  else match b.seq.last? with | some 1 => true | _ => false
+  else match b.seq.reverse.head? with | some 1 => true | _ => false
 
 def compare (a b : EpspSS) : Int :=
   CommonEps.compareSeq a.seq b.seq a.isMasterLimit b.isMasterLimit
@@ -274,6 +256,7 @@ instance : Notation EpspSS where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a o := a.compare o
+  reduce a := EpspSS.normalize a  -- placeholder idempotence
 
 /-! EpsOmegaSS API + Notation instance. -/
 namespace EpsOmegaSS
@@ -294,7 +277,7 @@ def index (b : EpsOmegaSS) (n : GoogInt) : EpsOmegaSS := expand b n
 
 def isSuccessor (b : EpsOmegaSS) : Bool :=
   if b.isMasterLimit then false
-  else match b.seq.last? with | some 1 => true | _ => false
+  else match b.seq.reverse.head? with | some 1 => true | _ => false
 
 def compare (a b : EpsOmegaSS) : Int :=
   CommonEps.compareSeq a.seq b.seq a.isMasterLimit b.isMasterLimit
@@ -332,5 +315,6 @@ instance : Notation EpsOmegaSS where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a o := a.compare o
+  reduce a := EpsOmegaSS.normalize a  -- placeholder idempotence
 
 end Googology

@@ -72,35 +72,21 @@ def expandLen (b : Prss) (M : GoogInt) : Prss :=
         -- step 0: decrement last
         let lastIdx0 := b.seq.length - 1
         let seq0 := b.seq.set lastIdx0 (an - 1)
-        -- append M elements
-        let rec loop (s : Int) (running : List GoogInt) : List GoogInt :=
-          if s > M then running
+        -- append M elements from the RUNNING sequence (source pos1 = s + n - L)
+        let seq1 := (List.range M.toNat).foldl (fun running s =>
+          let pos1 : Int := ((s + 1 : Nat) : Int) + n - L  -- s: Nat -> s+1 (1-based)
+          if pos1 < 1 ∨ pos1 > running.length then running
           else
-            let pos1 : Int := s + n - L  -- 1-based
-            if pos1 < 1 ∨ pos1 > running.length then running
-            else
-              let elem := running.get! (pos1.toNat - 1)
-              loop (s + 1) (running ++ [elem])
-        { b with seq := loop 1 seq0 }
+            let elem := running.getD (pos1.toNat - 1) 0
+            running ++ [elem]) seq0
+        { b with seq := seq1 }
 
 /- Parsing. -/
 private def stripOuter (s : String) : String :=
-  let rec dropFront (t : String) : String :=
-    if !t.isEmpty ∧ (t.front = '(' ∨ t.front = '[' ∨ t.front = '{')
-    then dropFront (t.drop 1) else t
-  let rec dropBack (t : List Char) : List Char :=
-    match t with
-    | [] => []
-    | c :: rest =>
-      let rev := (c :: rest).reverse
-      match rev with
-      | [] => []
-      | last :: rinit =>
-        if last = ')' ∨ last = ']' ∨ last = '}'
-        then (rinit.reverse)
-        else (c :: rest)
-  let front := dropFront (s.filter (· ≠ ' '))
-  String.mk (dropBack front.data)
+  let cs := s.toList.filter (· ≠ ' ')
+  let cs1 := cs.dropWhile (fun c => c = '(' ∨ c = '[' ∨ c = '{')
+  let tail := cs1.reverse.dropWhile (fun c => c = ')' ∨ c = ']' ∨ c = '}')
+  String.ofList tail.reverse
 
 def fromString (s : String) : Prss :=
   let t := stripOuter s
@@ -108,16 +94,22 @@ def fromString (s : String) : Prss :=
   else
     let parts := t.splitOn ","
     let seq : List GoogInt := parts.filterMap fun p =>
-      let trimmed := p.trim
+      let trimmed := p.trimAscii
       if trimmed.isEmpty then none
-      else some (trimmed.toInt!.getD 0)
+      else some ((trimmed.toInt?).getD 0)
     { seq }
 
 def toString (b : Prss) : String :=
   if b.isMasterLimit then "(0, 1, 2, …)"
   else
-    let parts := b.seq.map toString
+    let parts := b.seq.map (fun v : GoogInt => v.repr)
     s!"({String.intercalate ", " parts})"
+
+/- §12 limits. -/
+def limit (n : GoogInt) : Prss :=
+  { seq := (List.range n.toNat).map (fun k => Int.ofNat k) }
+
+def masterLimit : Prss := { isMasterLimit := true }
 
 /-! Expand. -/
 def expand (b : Prss) (m : GoogInt) : Prss :=
@@ -150,7 +142,7 @@ def index (b : Prss) (n : GoogInt) : Prss := expand b n
 /- isSuccessor: sequence ends with 0 (master_limit -> false). -/
 def isSuccessor (b : Prss) : Bool :=
   if b.isMasterLimit then false
-  else match b.seq.last? with | some 0 => true | _ => false
+  else match b.seq.reverse.head? with | some 0 => true | _ => false
 
 /- Lexicographic compare (ordinal order). Master limit is supremum. -/
 def compare (a b : Prss) : Int :=
@@ -159,6 +151,7 @@ def compare (a b : Prss) : Int :=
     | true, true => 0
     | true, false => 1
     | false, true => -1
+    | false, false => 0  -- unreachable (guarded by the if above)
   else
     let n1 := a.seq.length; let n2 := b.seq.length
     let m := min n1 n2
@@ -178,15 +171,6 @@ def compare (a b : Prss) : Int :=
     BFS here; as a faithful placeholder normalize just idempotently returns
     the expression if it's already standard form (see C++). -/
 def normalize (b : Prss) : Prss := b  -- no-op, matches std C++ idempotence
-
-/-- §12 limits. -/
-def limit (n : GoogInt) : Prss :=
-  let rec build (k : GoogInt) (acc : List GoogInt) : List GoogInt :=
-    if k ≥ n then acc.reverse
-    else build (k + 1) (k :: acc)
-  { seq := build 0 [] }
-
-def masterLimit : Prss := { isMasterLimit := true }
 
 end Prss
 
@@ -213,5 +197,6 @@ instance : Notation Prss where
   expand b n := b.expand n
   expandTo b len := b.expandTo len
   compare a o := a.compare o
+  reduce a := Prss.normalize a  -- placeholder idempotence (loop-free, like normalize)
 
 end Googology

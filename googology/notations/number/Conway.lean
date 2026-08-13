@@ -28,10 +28,11 @@ structure Conway where
 
 namespace Conway
 
-/-- Render a chain as LaTeX. -/
-def ser (ch : List CNode) : String :=
+/-- Render a chain as LaTeX. Partial: recursion descends into sub-chain
+    fields (no termination proof). -/
+partial def ser (ch : List CNode) : String :=
   match ch with
-  | [.value a, .value b] => s!"{a}^{{{b}}}"
+  | .value a :: .value b :: [] => s!"{a}^{" ++ b.repr ++ "}"
   | _ =>
     let parts := ch.map fun node =>
       match node with
@@ -39,12 +40,12 @@ def ser (ch : List CNode) : String :=
       | .subChain s => s!"({ser s})"
     String.intercalate " \\rightarrow " parts
 
-/-- Single expansion step on a chain. -/
-def stepOnce (ch : List CNode) : List CNode :=
+/-- Single expansion step on a chain. Partial (recurseSub nested via where). -/
+partial def stepOnce (ch : List CNode) : List CNode :=
   match ch with
   | [] => []
-  | [_] => ch
-  | [a, b] =>
+  | _ :: [] => ch
+  | a :: b :: [] =>
     match a, b with
     | .value _, .value _ => ch  -- terminal: a -> b
     | _, _ => recurseSub ch
@@ -54,44 +55,44 @@ def stepOnce (ch : List CNode) : List CNode :=
       ch.dropLast
     -- rule 2b: middle 1
     else if ch.length ≥ 2 then
-      let secondLast := ch.get! (ch.length - 2)
+      let secondLast := ch.getD (ch.length - 2) (.value 0)
       match secondLast with
-      | .value 1 => ch.dropLast 2
+      | .value 1 => ch.dropLast.dropLast
       | _ =>
         -- rule 3: X -> a -> b = X -> (X -> a-1 -> b) -> b-1
         match ch.getLast?, secondLast with
         | some (.value b), .value a =>
-          let x := ch.dropLast 2
+          let x := ch.dropLast.dropLast
           let inner := x ++ [.value (a - 1), .value b]
           x ++ [.subChain inner, .value (b - 1)]
         | _, _ => recurseSub ch
     else recurseSub ch
 
-/-- Recurse into sub-chains looking for something to expand. -/
-def recurseSub (ch : List CNode) : List CNode :=
-  let rec go (acc : List CNode) (remaining : List CNode) (changed : Bool) : List CNode :=
-    match remaining with
-    | [] => if changed then acc.reverse else ch
-    | (.subChain sub) :: rest =>
-      let before := ser sub
-      let s := stepOnce sub
-      let after := ser s
-      if after ≠ before then
-        let newNode : CNode :=
-          match s with
-          | [.value v] => .value v
-          | _ => .subChain s
-        go (newNode :: acc) rest true
-      else
-        go (.subChain sub :: acc) rest changed
-    | node :: rest => go (node :: acc) rest changed
-  go [] ch false
+where
+  recurseSub (ch : List CNode) : List CNode :=
+    let rec go (acc : List CNode) (remaining : List CNode) (changed : Bool) : List CNode :=
+      match remaining with
+      | [] => if changed then acc.reverse else ch
+      | (.subChain sub) :: rest =>
+        let before := ser sub
+        let s := stepOnce sub
+        let after := ser s
+        if after ≠ before then
+          let newNode : CNode :=
+            match s with
+            | .value v :: [] => .value v
+            | _ => .subChain s
+          go (newNode :: acc) rest true
+        else
+          go (.subChain sub :: acc) rest changed
+      | node :: rest => go (node :: acc) rest changed
+    go [] ch false
 
 /-- Create a Conway notation from a string. -/
 def fromString (s : String) : Conway :=
   let t := s.replace "→" "->" |>.replace " " ""
   let parts := t.splitOn "->"
-  { chain := parts.map (λ p => .value (p.toInt!.getD 0)) }
+  { chain := parts.map (λ p => .value (p.toInt?.getD 0)) }
 
 /-- Create an empty Conway notation. -/
 def new : Conway := { chain := [] }
@@ -115,19 +116,22 @@ instance : Notation Conway where
   toLatex c := Conway.ser c.chain
 
   expand c n :=
-    let rec go (ch : List CNode) (i : GoogInt) : List CNode :=
-      if i ≤ 0 then ch
-      else go (Conway.stepOnce ch) (i - 1)
-    { c with chain := go c.chain n }
+    let rec expandGo (ch : List CNode) (i : Nat) : List CNode :=
+      if i = 0 then ch
+      else expandGo (Conway.stepOnce ch) (i - 1)
+    { c with chain := expandGo c.chain n.toNat }
 
   expandTo c len :=
-    let rec go (cur : Conway) (prev : String) : Conway :=
+    let rec expandToGo (n : Nat) (cur : Conway) (prev : String) : Conway :=
       if prev.length ≥ len then cur
+      else if n = 0 then cur
       else
         let next : Conway := { chain := Conway.stepOnce cur.chain }
         let curS := Conway.ser next.chain
         if curS = prev then next
-        else go next curS
-    go c (Conway.ser c.chain)
+        else expandToGo (n - 1) next curS
+    expandToGo 1000 c (Conway.ser c.chain)
+
+  reduce c := c  -- placeholder (Conway step may not stabilize; no-op)
 
 end Googology
