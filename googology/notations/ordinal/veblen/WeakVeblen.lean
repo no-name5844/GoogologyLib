@@ -22,52 +22,58 @@ namespace WeakVeblen
 
 /-! parse helpers ------------------------------------------------------- -/
 
-private def splitTopLevelCommas (body : String) : List String :=
-  let rec go (i depth : Nat) (cur : List Char) (acc : List String) : List String :=
-    if h : i < body.length then
-      let c := body[i]
-      match c with
-      | '(' => go (i + 1) (depth + 1) (c :: cur) acc
-      | ')' => go (i + 1) (if depth > 0 then depth - 1 else 0) (c :: cur) acc
-      | ',' =>
-        if depth = 0 then
-          let seg := String.mk cur.reverse
-          go (i + 1) 0 [] (acc ++ [seg])
-        else go (i + 1) depth (c :: cur) acc
-      | _ => go (i + 1) depth (c :: cur) acc
-    else
-      if cur.isEmpty then acc
-      else acc ++ [String.mk cur.reverse]
-  go 0 0 [] []
+/-- Split on commas at top nesting depth; substrings are `body`-slices. -/
+private partial def splitTopLevelCommasLoop (body : String) (p : body.Pos) (depth : Nat)
+    (start : body.Pos) (acc : List String) : List String :=
+  match p.get? with
+  | none => if p = start then acc else acc ++ [body.extract start p]
+  | some c =>
+    match c with
+    | '(' => splitTopLevelCommasLoop body p.next! (depth + 1) start acc
+    | ')' => splitTopLevelCommasLoop body p.next! (if depth > 0 then depth - 1 else 0) start acc
+    | ',' =>
+      if depth = 0 then
+        splitTopLevelCommasLoop body p.next! 0 p.next! (acc ++ [body.extract start p])
+      else splitTopLevelCommasLoop body p.next! depth start acc
+    | _ => splitTopLevelCommasLoop body p.next! depth start acc
 
-private def findTopLevelAt (s : String) : Option Nat :=
-  let rec go (i depth : Nat) : Option Nat :=
-    if i ≥ s.length then none
-    else
-      let c := s[i]
-      match c with
-      | '(' => go (i + 1) (depth + 1)
-      | ')' => go (i + 1) (if depth > 0 then depth - 1 else 0)
-      | '@' => if depth = 0 then some i else go (i + 1) depth
-      | _ => go (i + 1) depth
-  go 0 0
+private def splitTopLevelCommas (body : String) : List String :=
+  splitTopLevelCommasLoop body body.startPos 0 body.startPos []
+
+/-- Position of the top-level '@' in `s`, if any. -/
+private partial def findTopLevelAtLoop (s : String) (p : s.Pos) (depth : Nat) : Option s.Pos :=
+  match p.get? with
+  | none => none
+  | some c =>
+    match c with
+    | '(' => findTopLevelAtLoop s p.next! (depth + 1)
+    | ')' => findTopLevelAtLoop s p.next! (if depth > 0 then depth - 1 else 0)
+    | '@' => if depth = 0 then some p else findTopLevelAtLoop s p.next! depth
+    | _ => findTopLevelAtLoop s p.next! depth
+
+private def findTopLevelAt (s : String) : Option s.Pos :=
+  findTopLevelAtLoop s s.startPos 0
+
+/-- Drop leading '(' / '[' / '{' (and whitespace) and matching trailing
+    ')' / ']' / '}' from both ends. -/
+private partial def stripFrontLoop (s : String) (p : s.Pos) : s.Pos :=
+  match p.get? with
+  | some c => if c = '(' ∨ c = '[' ∨ c = '{' ∨ c = ' ' ∨ c = '\t' then stripFrontLoop s p.next! else p
+  | none => p
+
+private partial def stripBackLoop (s : String) (p : s.Pos) (last : s.Pos) : s.Pos :=
+  match p.get? with
+  | some c =>
+    if c = ')' ∨ c = ']' ∨ c = '}' ∨ c = ' ' ∨ c = '\t' then stripBackLoop s p.next! last
+    else stripBackLoop s p.next! p.next!
+  | none => last
 
 private def stripOuter (s : String) : String :=
-  let noSpace := s.filter (· ≠ ' ')
-  let rec dropFront (t : String) : String :=
-    if !t.isEmpty ∧ (t.front = '(' ∨ t.front = '[' ∨ t.front = '{')
-    then dropFront (t.drop 1) else t
-  let rec dropBack (cs : List Char) : List Char :=
-    match cs with
-    | [] => []
-    | cs =>
-      match cs.reverse with
-      | [] => []
-      | last :: rinit =>
-        if last = ')' ∨ last = ']' ∨ last = '}'
-        then dropBack rinit.reverse
-        else cs
-  String.mk (dropBack (dropFront noSpace).data)
+  let f := stripFrontLoop s s.startPos
+  let b := stripBackLoop s f s.endPos
+  s.extract f b
+
+private def trimStr (s : String) : String := (s.trimAscii).copy
 
 /-! Parser / stringifier ---------------------------------------------- -/
 
@@ -76,12 +82,12 @@ def parseBody (body : String) : OrdinalExpr :=
   let comps : List (OrdinalExpr × OrdinalExpr) := segs.filterMap fun seg =>
     match findTopLevelAt seg with
     | none =>
-      match OrdinalExpr.parse seg.trim with
+      match OrdinalExpr.parse (trimStr seg) with
       | .ok a => some (a, OrdinalExpr.zero)
       | .error _ => none
-    | some j =>
-      let aStr := (seg.extract 0 j).trim
-      let bStr := (seg.extract (j + 1) seg.length).trim
+    | some jPos =>
+      let aStr := trimStr (seg.extract seg.startPos jPos)
+      let bStr := trimStr (seg.extract jPos.next! seg.endPos)
       match OrdinalExpr.parse aStr, OrdinalExpr.parse bStr with
       | .ok a, .ok b => some (a, b)
       | _, _ => none
@@ -94,7 +100,7 @@ def fromString (s : String) : WeakVeblen :=
   else
     { ord := parseBody t }
 
-def toString (w : WeakVeblen) : String := OrdinalExpr.toString w.ord
+def toString (w : WeakVeblen) : String := (repr w.ord).pretty
 def toLatex := toString
 
 /-! expand / operator[] ----------------------------------------------- -/
@@ -108,37 +114,45 @@ def index (w : WeakVeblen) (n : GoogInt) : WeakVeblen := expand w n
 
 /-! compare per article §1.3: primary = @b (second), secondary = @a (first).
     Closed (non-WV) ordinals fall back to Mathlib.Ordinal compare via
-    OrdinalExpr.compare. -/
+    OrdinalExpr.compare. The WV-structure recursion (`wvCmpLists` / `wvCmpOrd`)
+    is computable and parameterized by the leaf compare, so the noncomputable
+    `OrdinalExpr.compare` only enters through `compare` itself. -/
 
-def compare (a b : WeakVeblen) : Int :=
-  let rec goLists (Ca Cb : List (OrdinalExpr × OrdinalExpr)) : Int :=
-    match Ca, Cb with
-    | [], [] => 0
-    | [], _ => -1
-    | _, [] => 1
-    | (a1, b1) :: Ca', (a2, b2) :: Cb' =>
-      let c2 := goOrd b1 b2
-      if c2 ≠ 0 then c2
-      else
-        let c1 := goOrd a1 a2
-        if c1 ≠ 0 then c1
-        else goLists Ca' Cb'
-  where
-    goOrd (X Y : OrdinalExpr) : Int :=
-      match X, Y with
-      | .wv ca, .wv cb => goLists ca cb
-      | .wv _, _ => -1   -- undefined mixed ordering: consistent bias
-      | _, .wv _ => 1
-      | _, _ => OrdinalExpr.compare X Y
+/-- Lexicographic compare of coordinate lists; `leaf` compares single coords. -/
+private partial def wvCmpLists (leaf : OrdinalExpr → OrdinalExpr → Int)
+    (Ca Cb : List (OrdinalExpr × OrdinalExpr)) : Int :=
+  match Ca, Cb with
+  | [], [] => 0
+  | [], _ => -1
+  | _, [] => 1
+  | (a1, b1) :: Ca', (a2, b2) :: Cb' =>
+    let c2 := leaf b1 b2
+    if c2 ≠ 0 then c2
+    else
+      let c1 := leaf a1 a2
+      if c1 ≠ 0 then c1
+      else wvCmpLists leaf Ca' Cb'
+
+/-- Coordinate compare: nested WV defers to `wvCmpLists`; closed coords use
+    `base` (the semantic Mathlib.Ordinal compare). -/
+private partial def wvCmpOrd (base : OrdinalExpr → OrdinalExpr → Int)
+    (X Y : OrdinalExpr) : Int :=
+  match X, Y with
+  | .wv ca, .wv cb => wvCmpLists (wvCmpOrd base) ca cb
+  | .wv _, _ => -1   -- undefined mixed ordering: consistent bias
+  | _, .wv _ => 1
+  | _, _ => base X Y
+
+noncomputable def compare (a b : WeakVeblen) : Int :=
   match a.ord, b.ord with
-  | .wv ca, .wv cb => goLists ca cb
+  | .wv ca, .wv cb => wvCmpLists (wvCmpOrd OrdinalExpr.compare) ca cb
   | .wv _, _ => -1
   | _, .wv _ => 1
   | oa, ob => OrdinalExpr.compare oa ob
 
 end WeakVeblen
 
-instance : Notation WeakVeblen where
+noncomputable instance : Notation WeakVeblen where
   name _ := "weak_veblen"
   family _ := Family.ordinal
   subfamily _ := "veblen"
@@ -158,5 +172,6 @@ instance : Notation WeakVeblen where
   expand w n := w.expand n
   expandTo b _ := b   -- expand_to not in capability set
   compare a o := a.compare o
+  reduce x := x   -- weak-Veblen expressions are already in reduced form
 
 end Googology

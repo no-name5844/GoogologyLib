@@ -17,13 +17,20 @@ Rationale (architecture decision, matches this library's design §5 / C2/C3):
     SYMBOLIC AST: `OrdinalExpr`. Only when we need the SEMANTIC value (for
     compare / predecessor / isSuccessor) do we "collapse" a CLOSED (WV-free)
     expression to a Mathlib.Ordinal.
+  * The predicates used by `expand` itself (`isZero`, `isSuccessor`,
+    `predecessor`) must stay COMPUTABLE: `expand` is a `partial` function,
+    and Lean forbids partial definitions from depending on `noncomputable`
+    ones. So they are implemented via ordinal-arithmetic identities over the
+    syntax tree instead of via `toMOrdinal` evaluation (which is noncomputable
+    through `Ordinal.instPow`). The identities hold for closed expressions;
+    WV nodes are treated conservatively as nonzero / not-successor.
 
 Types
 -----
   * `OrdinalExpr` — symbolic expression tree (Zero/Omega/Succ/Add/Mul/Pow/WV).
     Pattern matching targets for expand(). WV stands for WeakVeblen (a list
     of (a_i @ b_i) coordinates; its ordinal value is undefined by the
-    article, so `toMathlibOrdinal?` returns `none` for expressions containing
+    article, so `toMOrdinal` returns `none` for expressions containing
     a WV node).
   * `_root_.Ordinal` (from `Mathlib.SetTheory.Ordinal.Basic`) — true ordinals.
 
@@ -41,7 +48,7 @@ import Mathlib.SetTheory.Ordinal.CantorNormalForm
 
 namespace Googology
 
-abbrev MOrdinal := Ordinal   -- the real, Mathlib ordinals
+abbrev MOrdinal := Ordinal.{0}   -- the real, Mathlib ordinals (fixed universe)
 
 /-! Symbolic expression tree — SORTED BY case split priority for expand. -/
 inductive OrdinalExpr where
@@ -56,171 +63,105 @@ inductive OrdinalExpr where
 
 namespace OrdinalExpr
 
+instance : Inhabited OrdinalExpr := ⟨.zero⟩
+
 /-! Factories ---------------------------------------------------------- -/
 def one   : OrdinalExpr := .succ .zero
 def fromInt (n : Int) : OrdinalExpr :=
-  if n ≤ 0 then .zero
-  else
-    let rec loop (k : Int) (acc : OrdinalExpr) : OrdinalExpr :=
-      if k ≤ 0 then acc else loop (k - 1) (.succ acc)
-    loop n .zero
+  match n with
+  | Int.ofNat m => fromNat m
+  | Int.negSucc _ => .zero   -- n ≤ 0 → 0
+where
+  fromNat : Nat → OrdinalExpr
+    | 0 => .zero
+    | m + 1 => .succ (fromNat m)
 
 /-! Collapse a CLOSED (WV-free) expression to a true Mathlib.Ordinal.
     Returns `none` if the tree contains a `WV` node or any malformed part.
     This is the semantic floor: the denoted ordinal exists and equals this
     Mathlib.Ordinal whenever the function succeeds; WV nodes are (by the
     article) explicitly NOT endowed with an ordinal value. -/
-partial def toMOrdinal : OrdinalExpr → Option MOrdinal
+noncomputable def toMOrdinal : OrdinalExpr → Option MOrdinal
   | .zero => some 0
-  | .omega => some Ordinal.omega
+  | .omega => some Ordinal.omega0
   | .succ a => toMOrdinal a |>.map fun o => o + 1
   | .add a b => do let oa ← toMOrdinal a; let ob ← toMOrdinal b; some (oa + ob)
   | .mul a b => do let oa ← toMOrdinal a; let ob ← toMOrdinal b; some (oa * ob)
   | .pow a b => do let oa ← toMOrdinal a; let ob ← toMOrdinal b; some (oa ^ ob)
   | .wv _ => none   -- article omits ordinal value of a WV expression
 
-/-! Derived predicates & ops (semantic, via Mathlib). ------------------- -/
+/-! Derived predicates & ops. ------------------------------------------
+    `isZero` / `isSuccessor` / `predecessor` are COMPUTABLE ordinal-identity
+    versions (see header): a+b=0 ⇔ a=0∧b=0; a·b=0 ⇔ a=0∨b=0; a^b=0 ⇔ a=0∧b≠0;
+    a+b is a successor iff b is, or b=0 and a is; a·b iff both are; a^b iff
+    a=1, or b=0, or both are. `predecessor` unwraps a syntactic `succ` (all
+    closed finite ordinals from `fromInt`/`parse` are succ-chains). -/
 
-/-- True semantically (closed-zero or empty CNF). WV nodes are never zero. -/
-def isZero (e : OrdinalExpr) : Bool :=
-  match toMOrdinal e with
-  | some o => o = 0
-  | none =>
-    -- Fallback: structural check (useful so expand on Add can test β)
-    match e with | .zero => true | .wv _ => false | _ => false
+/-- Zero test via ordinal identities (no evaluation, computable). WV nodes
+    are never zero (conservative; the article gives them no value). -/
+def isZero : OrdinalExpr → Bool
+  | .zero => true
+  | .succ _ => false
+  | .omega => false
+  | .add a b => isZero a && isZero b
+  | .mul a b => isZero a || isZero b
+  | .pow a b => isZero a && !isZero b
+  | .wv _ => false
 
-/-- Semantic successor check: closed expressions only. -/
-def isSuccessor (e : OrdinalExpr) : Bool :=
-  match toMOrdinal e with
-  | some o => Ordinal.isSucc o
-  | none => false
+/-- Syntactic test for the expression 1 = succ 0. -/
+def isOne : OrdinalExpr → Bool
+  | .succ .zero => true
+  | _ => false
 
-/-- Semantic predecessor of a successor. -/
+/-- Successor test via ordinal identities (computable). -/
+def isSuccessor : OrdinalExpr → Bool
+  | .zero => false
+  | .omega => false
+  | .succ _ => true
+  | .add a b => if isZero b then isSuccessor a else isSuccessor b
+  | .mul a b => isSuccessor a && isSuccessor b
+  | .pow a b => isOne a || isZero b || (isSuccessor a && isSuccessor b)
+  | .wv _ => false
+
+/-- Predecessor of a syntactic successor; non-succ expressions are left
+    untouched (callers fall back to a conservative `.wv comps`). -/
 def predecessor (e : OrdinalExpr) : Option OrdinalExpr :=
-  match toMOrdinal e with
-  | some o =>
-    if h : Ordinal.isSucc o then
-      let o' := Ordinal.pred o h
-      -- The ordinal o' is < o and is a closed ordinal; for our purposes
-      -- any finite closed ordinal can be reconstructed syntactically via
-      -- fromInt of its NatPart when it's finite, but here we take the
-      -- simplest road: if o' is a natural (< ω) we reconstruct with fromInt
-      -- on the natural part; otherwise we leave as symbolic (callers that
-      -- need the structure can pattern match on the SUCC constructor in
-      -- `expandWV`, which doesn't use predecessor on open expressions).
-      if h2 : o' < Ordinal.omega then
-        some (fromInt (Ordinal.toNat o'))
-      else
-        -- For infinite o'-1 there's no clean fromInt. This case shouldn't
-        -- fire because the caller (expandWV case 3/4) uses `a+1@0` / `a+1@b+1`
-        -- with a being SUCC of the LAST coordinate which is typically finite.
-        none
-    else none
-  | none => none
+  match e with
+  | .succ a => some a
+  | _ => none
 
-/-- Semantic 3-way compare. Falls back to structural none-based unequal if
-    open expressions are compared (0 returned; caller should detect mixed). -/
-def compare (A B : OrdinalExpr) : Int :=
+/-- Semantic 3-way compare via Mathlib.Ordinal values. Falls back to 0 when
+    either side is open (WV); the caller detects mixed/open via type tags. -/
+noncomputable def compare (A B : OrdinalExpr) : Int :=
   match toMOrdinal A, toMOrdinal B with
   | some oa, some ob =>
     if oa < ob then -1 else if oa = ob then 0 else 1
   | _, _ => 0   -- undefined case: treat as equal (caller handles type tags)
 
-def equals (A B : OrdinalExpr) : Bool := compare A B = 0
-instance : BEq OrdinalExpr where beq := equals
+noncomputable def equals (A B : OrdinalExpr) : Bool := compare A B = 0
+noncomputable instance : BEq OrdinalExpr where beq := equals
+
+/-- The unique natural `n` with `↑n = o`, for a finite ordinal `o < ω`. -/
+noncomputable def omegaNat (o : MOrdinal) : Nat :=
+  if h : o < Ordinal.omega0 then
+    Classical.choose (Ordinal.lt_omega0.mp h)
+  else 0
 
 /-- Left subtraction A - B (requires A >= B, closed). -/
-def subtract (A B : OrdinalExpr) : Option OrdinalExpr :=
-  do let oa ← toMOrdinal A
-     let ob ← toMOrdinal B
-     if h : ob ≤ oa then
-       let d : MOrdinal := oa - ob
-       if d < Ordinal.omega then some (fromInt (Ordinal.toNat d))
-       else none  -- infinite diff not expressible as fromInt (we don't need it)
-     else none
+noncomputable def subtract (A B : OrdinalExpr) : Option OrdinalExpr :=
+  match toMOrdinal A, toMOrdinal B with
+  | some oa, some ob =>
+    if ob ≤ oa then
+      let d : MOrdinal := oa - ob
+      if d < Ordinal.omega0 then some (fromInt (omegaNat d))
+      else none  -- infinite diff not expressible as fromInt (we don't need it)
+    else none
+  | _, _ => none
 
-/-! toString (LaTeX-ish, matches C++ Ordinal::to_string). --------------- -/
-partial def toString : OrdinalExpr → String
-  | .zero => "0"
-  | .omega => "ω"
-  | .succ x =>
-    -- "0 + 1" should just be "1". Detect.
-    match x with
-    | .zero => "1"
-    | _ => s!"{toString x} + 1"
-  | .add a b => s!"{toString a} + {toString b}"
-  | .mul a b => s!"{toString a} * {toString b}"
-  | .pow a b => s!"({toString a} ^ {toString b})"
-  | .wv comps =>
-    let parts := comps.map fun (a, b) =>
-      s!"{dispPart a}@{dispPart b}"
-    s!"({String.intercalate ", " parts})"
-where
-  dispPart (x : OrdinalExpr) : String :=
-    let s := toString x
-    if s.any (fun c => c = ' ' ∨ c = '(' ∨ c = ')') then s!"({s})" else s
-
-/-! expandWV — the 6 weak-Veblen cases (C++ Ordinal::expandWV). -------- -/
-partial def expandWV (comps : List (OrdinalExpr × OrdinalExpr)) (n : Int) : OrdinalExpr :=
-  match comps with
-  | [(a, _)] when isZero a => fromInt n   -- case 1: A=(0) -> n
-  | (a0, _) :: rest when isZero a0 => .wv rest   -- case 2: drop (0@b1)
-  | _ =>
-    let last := comps.getLast!
-    let aLast := last.1
-    let bLast := last.2
-    let withoutLast := comps.dropLast
-    if h : aLast.isSuccessor then
-      match aLast.predecessor with
-      | none => .wv comps
-      | some a =>
-        if isZero bLast then
-          -- Case 3: (#, (a+1)@0)
-          let base : List (OrdinalExpr × OrdinalExpr) := withoutLast ++ [(a, .zero)]
-          let baseWV := .wv base
-          if n = 0 then .add baseWV one
-          else
-            let recCase := expandWV comps (n - 1)
-            .pow baseWV recCase
-        else
-          if h2 : bLast.isSuccessor then
-            match bLast.predecessor with
-            | none =>
-              -- Case 5: b is limit
-              match expand bLast n with
-              | .ok eb =>
-                let r : List _ := withoutLast ++ [(a, bLast), (one, eb)]
-                .wv r
-              | .error _ => .wv comps
-            | some b =>
-              -- Case 4: (#, (a+1)@(b+1))
-              let base : List _ := withoutLast ++ [(a, .succ b)]
-              let baseWV := .wv base
-              if n = 0 then .add baseWV one
-              else
-                let recCase := expandWV comps (n - 1)
-                let r : List _ := base ++ [(recCase, b)]
-                .wv r
-          else
-            -- Case 5 fallback: b has no predecessor but isSuccessor was
-            -- false → a limit; apply the standard §11 FS on b
-            match expand bLast n with
-            | .ok eb =>
-              let r : List _ := withoutLast ++ [(a, bLast), (one, eb)]
-              .wv r
-            | .error _ => .wv comps
-    else
-      -- Case 6: a is a limit (not successor) — expand a[n]@b
-      match expand aLast n with
-      | .ok ea =>
-        let r : List _ := withoutLast ++ [(ea, bLast)]
-        .wv r
-      | .error _ => .wv comps
-where
-  expand e n := OrdinalExpr.expand e n  -- forward to main expand (below)
-
-/-! expand — fundamental sequence. Returns `none` when undefined (matches
-    C++ policy: 0 / closed / successor CNF / successor have no FS). -/
+/-! expand — fundamental sequence. Returns an error when undefined (matches
+    C++ policy: 0 / closed / successor CNF / successor have no FS). The WV
+    case splits (C++ Ordinal::expandWV) live in the `where` clause so that
+    the mutual recursion `expand ↔ expandWV` forms a single partial group. -/
 partial def expand : OrdinalExpr → Int → Except String OrdinalExpr
   | .zero, _ => .error "expand: 0 has no FS"
   | .omega, n => .ok (fromInt n)   -- C2
@@ -243,48 +184,105 @@ partial def expand : OrdinalExpr → Int → Except String OrdinalExpr
       match expand β n with
       | .ok e =>
         -- α^1 → α collapse
-        if equals e one then .ok α
+        if isOne e then .ok α
         else .ok (.pow α e)
       | .error e => .error e
   | .wv comps, n => .ok (expandWV comps n)
+where
+  /-- The 6 weak-Veblen cases (C++ Ordinal::expandWV). -/
+  expandWV (comps : List (OrdinalExpr × OrdinalExpr)) (n : Int) : OrdinalExpr :=
+    match comps with
+    | (a, _) :: [] => if isZero a then fromInt n else expandWVRest comps n   -- case 1: A=(0) -> n
+    | (a0, _) :: rest => if isZero a0 then .wv rest else expandWVRest comps n  -- case 2: drop (0@b1)
+    | _ => expandWVRest comps n
+  expandWVRest (comps : List (OrdinalExpr × OrdinalExpr)) (n : Int) : OrdinalExpr :=
+    let last := comps.getLast!
+    let aLast := last.1
+    let bLast := last.2
+    let withoutLast := comps.dropLast
+    match aLast with
+    | .succ a =>
+      if isZero bLast then
+        -- Case 3: (#, (a+1)@0)
+        let base : List (OrdinalExpr × OrdinalExpr) := withoutLast ++ [(a, .zero)]
+        let baseWV := .wv base
+        if n = 0 then .add baseWV one
+        else
+          let recCase := expandWV comps (n - 1)
+          .pow baseWV recCase
+      else
+        match bLast with
+        | .succ b =>
+          -- Case 4: (#, (a+1)@(b+1))
+          let base : List _ := withoutLast ++ [(a, .succ b)]
+          let baseWV := .wv base
+          if n = 0 then .add baseWV one
+          else
+            let recCase := expandWV comps (n - 1)
+            let r : List _ := base ++ [(recCase, b)]
+            .wv r
+        | _ =>
+          -- Case 5: b is a limit; apply the standard §11 FS on b
+          match expand bLast n with
+          | .ok eb =>
+            let r : List _ := withoutLast ++ [(a, bLast), (one, eb)]
+            .wv r
+          | .error _ => .wv comps
+    | _ =>
+      -- Case 6: a is a limit (not a syntactic successor) — expand a[n]@b
+      match expand aLast n with
+      | .ok ea =>
+        let r : List _ := withoutLast ++ [(ea, bLast)]
+        .wv r
+      | .error _ => .wv comps
 
 /-! Parser (ordinal sub-expressions used by WeakVeblen coordinates & Ns).
     Grammar: right-assoc ^, then *, then +; ω/w/omega/UTF-8 ω; parentheses;
-    integers. Empty → 0. ------------------------------------------------ -/
+    integers. Empty → 0.
+    Positions are `s.Pos` (Lean 4.30 byte offsets with validity proof);
+    character access is via `Pos.get?`, stepping via `Pos.next!`. --------- -/
 private structure OpState where
   s : String
-  i : Nat := 0
+  i : s.Pos := s.startPos
+
+private partial def skipSpacesLoop {s : String} (p : s.Pos) : s.Pos :=
+  match p.get? with
+  | some c => if c = ' ' ∨ c = '\t' then skipSpacesLoop p.next! else p
+  | none => p
 
 private def OpState.skipSpaces (st : OpState) : OpState :=
-  let rec loop (i : Nat) : Nat :=
-    if h : i < st.s.length then
-      let c := st.s[i]
-      if c = ' ' ∨ c = '\t' then loop (i + 1) else i
-    else i
-  { st with i := loop st.i }
+  { st with i := skipSpacesLoop st.i }
 
 private def OpState.peek (st : OpState) : Option Char :=
-  let st' := st.skipSpaces
-  if h : st'.i < st'.s.length then some (st'.s[st'.i]) else none
+  (st.skipSpaces).i.get?
 
 private def OpState.get (st : OpState) : Option Char × OpState :=
   let st' := st.skipSpaces
-  if h : st'.i < st'.s.length then
-    (some (st'.s[st'.i]), { st' with i := st'.i + 1 })
-  else (none, st')
+  match st'.i.get? with
+  | some c => (some c, { st' with i := st'.i.next! })
+  | none => (none, st')
 
 private def tryOmega (st : OpState) : Bool × OpState :=
   let st' := st.skipSpaces
-  if h : st'.i < st'.s.length then
-    let c := st'.s[st'.i]
-    if c = 'w' ∨ c = 'W' then (true, { st' with i := st'.i + 1 })
+  match st'.i.get? with
+  | some c =>
+    if c = 'w' ∨ c = 'W' then (true, { st' with i := st'.i.next! })
     else if c = 'o' then
-      let rest := st'.s.extract st'.i st'.s.length
-      if rest.startsWith "omega" then (true, { st' with i := st'.i + 5 })
-      else (false, st)
-    else if c = 'ω' then (true, { st' with i := st'.i + 1 })
+      let p1 := st'.i.next!
+      let p2 := p1.next!
+      let p3 := p2.next!
+      let p4 := p3.next!
+      match p1.get?, p2.get?, p3.get?, p4.get? with
+      | some 'm', some 'e', some 'g', some 'a' => (true, { st' with i := p4.next! })
+      | _, _, _, _ => (false, st)
+    else if c = 'ω' then (true, { st' with i := st'.i.next! })
     else (false, st)
-  else (false, st)
+  | none => (false, st)
+
+private partial def digitsLoop (cur : Int) (s : OpState) : Int × OpState :=
+  match s.get with
+  | (some c, s') => if c.isDigit then digitsLoop (cur * 10 + (c.toNat - 48 : Int)) s' else (cur, s)
+  | (none, s') => (cur, s')
 
 private partial def parseExpr (st : OpState) : Except String (OrdinalExpr × OpState) :=
   parseAdd st
@@ -333,24 +331,17 @@ where
           else .error "parseAtom: expected ')'"
       | (some d, st2) =>
         if d.isDigit then
-          let rec loop (cur : Int) (s : OpState) : Int × OpState :=
-            match s.get with
-            | (some c, s') =>
-              if c.isDigit then
-                loop (cur * 10 + (c.toNat - 48 : Int)) s'
-              else (cur, s)
-            | (none, s') => (cur, s')
-          let (val, st3) := loop (d.toNat - 48 : Int) st2
+          let (val, st3) := digitsLoop (d.toNat - 48 : Int) st2
           .ok (fromInt val, st3)
         else if d = '-' then .ok (.zero, st2)
         else .error s!"parseAtom: unexpected '{d}'"
 
 /-! Public top-level parse. -/
 def parse (s : String) : Except String OrdinalExpr :=
-  match parseExpr ⟨s, 0⟩ with
+  match parseExpr ⟨s, s.startPos⟩ with
   | .ok (v, st') =>
-    if st'.skipSpaces.i < st'.s.length then
-      .error s!"parse: trailing at pos {st'.i}"
+    if st'.skipSpaces.i ≠ st'.s.endPos then
+      .error s!"parse: trailing at pos {st'.i.offset}"
     else .ok v
   | .error e => .error e
 

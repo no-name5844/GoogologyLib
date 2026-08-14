@@ -30,17 +30,15 @@ def isDefaultParams (x : Ns) : Bool := x.n = 2 ∧ x.m = 2
 def setParams (x : Ns) (n m : GoogInt) : Ns := { x with n, m }
 def params (x : Ns) : GoogInt × GoogInt := (x.n, x.m)
 
-/-! isFiniteInt_: Some k when α prints as pure digits (finite nat k ≥ 0). -/
+/-! isFiniteInt_: Some k when α is a finite ordinal (a succ-chain), k = ord α.
+    Structural test (no string round-trip needed). -/
+private def natOfFinite : OrdinalExpr → Option Nat
+  | .zero => some 0
+  | .succ a => (natOfFinite a).map (fun n => n + 1)
+  | _ => none
+
 def isFiniteInt (a : OrdinalExpr) : Option GoogInt :=
-  let t := OrdinalExpr.toString a
-  if t.isEmpty then none
-  else
-    if t.all (fun c => c.isDigit) then
-      let rec loop (i : Nat) (acc : Int) : Int :=
-        if i ≥ t.length then acc
-        else loop (i + 1) (acc * 10 + (t[i].toNat - 48 : Int))
-      some (loop 0 0)
-    else none
+  (natOfFinite a).map (fun n => (n : GoogInt))
 
 /-! f(α) — the Ns core function, recursive on α (§1.1 / §1.5).
     f(0) = 1; f(β+1) = f(β) · n; f(limit α) = f(expand(α, m)).
@@ -62,27 +60,29 @@ partial def fAux (x : Ns) (α : OrdinalExpr) : GoogInt :=
     | .error _ => 1
 
 /-! valueFinite: a_k = Σ_{β=1}^{k-1} 1/f(β). -/
+private partial def valueFiniteLoop (x : Ns) (k β : GoogInt) (acc : Rational) : Rational :=
+  if β ≥ k then acc
+  else
+    let fβ : GoogInt := fAux x (OrdinalExpr.fromInt β)
+    valueFiniteLoop x k (β + 1) (acc + Rational.ofNumDen 1 fβ)
+
 def valueFinite (x : Ns) (k : GoogInt) : Rational :=
-  let rec loop (β : GoogInt) (acc : Rational) : Rational :=
-    if β ≥ k then acc
-    else
-      let fβ : GoogInt := fAux x (OrdinalExpr.fromInt β)
-      loop (β + 1) (acc + Rational.mk 1 fβ)
-  loop 1 (Rational.mk 0 1)
+  valueFiniteLoop x k 1 (Rational.ofNumDen 0 1)
 
 /-! Exact rational value; none for limit index. -/
 def value (x : Ns) : Option Rational :=
   isFiniteInt x.alpha |>.map (valueFinite x)
 
 /-! Accumulated weight-fraction form. -/
+private partial def buildTerms (x : Ns) (k β : GoogInt) (acc : List (Int × Int)) : List (Int × Int) :=
+  if β ≥ k then acc.reverse
+  else
+    let fβ := fAux x (OrdinalExpr.fromInt β)
+    buildTerms x k (β + 1) ((1, fβ) :: acc)
+
 def accumulatedWeightFractions (x : Ns) : Option WeightedFractionSum :=
   isFiniteInt x.alpha |>.map fun k =>
-    let rec build (β : GoogInt) (acc : List (Int × Int)) : List (Int × Int) :=
-      if β ≥ k then acc.reverse
-      else
-        let fβ := fAux x (OrdinalExpr.fromInt β)
-        build (β + 1) ((1, fβ) :: acc)
-    { intPart := 0, terms := build 1 [] }
+    { intPart := 0, terms := buildTerms x k 1 [] }
 
 /-! Fraction string (e.g. "1/2 + 1/4"). -/
 def toFractionString (x : Ns) : String :=
@@ -96,32 +96,21 @@ def toFractionString (x : Ns) : String :=
       | none => "0"
 
 /-! Parsing: "α th NS" or just "α". -/
-private def trim (s : String) : String :=
-  let rec front (i : Nat) : Nat :=
-    if i < s.length ∧ (s[i] = ' ' ∨ s[i] = '\t') then front (i + 1) else i
-  let rec back (j : Nat) : Nat :=
-    if j > 0 ∧ let c := s[j - 1]; c = ' ' ∨ c = '\t' then back (j - 1) else j
-  let a := front 0; let b := back s.length
-  s.extract a b
+private def trim (s : String) : String := (s.trimAscii).copy
 
 def fromString (x : Ns) (s : String) : Ns :=
   let t := trim s
-  let lower := t.toLower
-  let alphaStr := Id.run do
-    let mut res := t
-    for hi : List Nat ← Id.run do pure [0] do
-      let pos := t.toLower.indexOf "th"
-      if pos > 0 then
-        let before := t.extract 0 pos
-        res := trim before
-    pure res
+  let alphaStr :=
+    match t.toLower.splitOn "th" with
+    | head :: _ => if head.isEmpty then t else trim ((t.take head.length).copy)
+    | [] => t
   let alphaStr := if alphaStr.isEmpty then "1" else alphaStr
   match OrdinalExpr.parse alphaStr with
   | .ok α => { x with alpha := α }
   | .error _ => { x with alpha := OrdinalExpr.fromInt 1 }
 
 def toString (x : Ns) : String :=
-  s!"{OrdinalExpr.toString x.alpha} th \\mathbb{{NS}}"
+  (repr x.alpha).pretty ++ " th \\mathbb{NS}"
 
 /-! expand: §11 pluggable FS on α (limit only). -/
 def expand (x : Ns) (k : GoogInt) : Ns :=
@@ -130,11 +119,11 @@ def expand (x : Ns) (k : GoogInt) : Ns :=
   | .error _ => x
 
 /-! compare: strictly increasing ⇒ compare α via Mathlib.Ordinal semantics. -/
-def compare (a b : Ns) : Int := OrdinalExpr.compare a.alpha b.alpha
+noncomputable def compare (a b : Ns) : Int := OrdinalExpr.compare a.alpha b.alpha
 
 end Ns
 
-instance : Notation Ns where
+noncomputable instance : Notation Ns where
   name _ := "ns"
   family _ := Family.realSequence
   subfamily _ := "ns"
@@ -154,5 +143,6 @@ instance : Notation Ns where
   expand x k := x.expand k
   expandTo b _ := b
   compare a o := a.compare o
+  reduce x := x   -- Ns is already in reduced form
 
 end Googology
